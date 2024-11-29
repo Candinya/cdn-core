@@ -1,0 +1,1350 @@
+openapi: 3.0.1
+info:
+  title: Caddy Delivery Network - Admin API
+  version: 0.0.0
+servers:
+  - url: /api/admin
+paths:
+  /health:
+    get:
+      tags:
+        - health
+      summary: health check
+      operationId: healthCheck
+      responses:
+        200:
+          description: Success
+          content: {}
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /auth/login:
+    post:
+      tags:
+        - auth
+      summary: login
+      operationId: authLogin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT Token
+  /user/create:
+    post:
+      tags:
+        - user
+      summary: create new user
+      security:
+        - JWTAuth: []
+      operationId: userCreate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInfoCreate"
+      responses:
+        200:
+          description: Created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        409:
+          description: Username conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /user/list:
+    get:
+      tags:
+        - user
+      summary: get user list
+      security:
+        - JWTAuth: []
+      operationId: userList
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  list:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserInfoWithID"
+                  page_max:
+                    $ref: "#/components/schemas/page_max"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
+  /user/info/{id}:
+    get:
+      tags:
+        - user
+      summary: get user info
+      security:
+        - JWTAuth: []
+      operationId: userInfoGet
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    patch:
+      tags:
+        - user
+      summary: update user info
+      security:
+        - JWTAuth: []
+      operationId: userInfoUpdate
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInfoInput"
+      responses:
+        200:
+          description: Updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /user/username/{id}:
+    put:
+      tags:
+        - user
+      summary: update username
+      security:
+        - JWTAuth: []
+      operationId: userUsernameUpdate
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+      responses:
+        200:
+          description: Updated successfully
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        409:
+          description: Username conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /user/password/{id}:
+    put:
+      tags:
+        - user
+      summary: update password
+      security:
+        - JWTAuth: []
+      operationId: userPasswordUpdate
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+      responses:
+        200:
+          description: Updated successfully
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /user/regenerate-token/{id}:
+    post:
+      tags:
+        - user
+      summary: regenerate user JWT token
+      security:
+        - JWTAuth: []
+      operationId: userRegenToken
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Regenerated successfully
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /user/delete/{id}:
+    delete:
+      tags:
+        - user
+      summary: delete user
+      security:
+        - JWTAuth: []
+      operationId: userDelete
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Deleted successfully
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /user/role/{id}:
+    put:
+      tags:
+        - user
+      summary: update role
+      security:
+        - JWTAuth: []
+      operationId: userRoleUpdate
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_admin:
+                  type: boolean
+      responses:
+        200:
+          description: Updated successfully
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /instance/create:
+    post:
+      tags:
+        - instance
+      summary: create instance
+      security:
+        - JWTAuth: []
+      operationId: instanceCreate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstanceInfoInput"
+      responses:
+        200:
+          description: Created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceInfoWithToken"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /instance/list:
+    get:
+      tags:
+        - instance
+      summary: get instance list
+      security:
+        - JWTAuth: []
+      operationId: instanceList
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  list:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/InstanceInfoWithID"
+                  page_max:
+                    $ref: "#/components/schemas/page_max"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /instance/info/{id}:
+    get:
+      tags:
+        - instance
+      summary: get instance info
+      security:
+        - JWTAuth: []
+      operationId: instanceInfoGet
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such instance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    patch:
+      tags:
+        - instance
+      summary: update instance info
+      security:
+        - JWTAuth: []
+      operationId: instanceInfoUpdate
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstanceInfoInput"
+      responses:
+        200:
+          description: Updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such instance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /instance/delete/{id}:
+    delete:
+      tags:
+        - instance
+      summary: delete instance
+      security:
+        - JWTAuth: []
+      operationId: instanceDelete
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Deleted successfully
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such instance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /instance/rotate-token/{id}:
+    post:
+      tags:
+        - instance
+      summary: regenerate
+      security:
+        - JWTAuth: []
+      operationId: instanceRotateToken
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Key rotated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceInfoWithToken"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such instance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /site/create:
+    post:
+      tags:
+        - site
+      summary: create site
+      security:
+        - JWTAuth: []
+      operationId: siteCreate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteInfoInput"
+      responses:
+        200:
+          description: Created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /site/list:
+    get:
+      tags:
+        - site
+      summary: get site list
+      security:
+        - JWTAuth: []
+      operationId: siteList
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  list:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SiteInfoWithID"
+                  page_max:
+                    $ref: "#/components/schemas/page_max"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /site/info/{id}:
+    get:
+      tags:
+        - site
+      summary: get site info
+      security:
+        - JWTAuth: []
+      operationId: siteInfoGet
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such site
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    patch:
+      tags:
+        - site
+      summary: update site info
+      security:
+        - JWTAuth: []
+      operationId: siteInfoUpdate
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteInfoInput"
+      responses:
+        200:
+          description: Updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such site
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /site/delete/{id}:
+    delete:
+      tags:
+        - site
+      summary: delete site
+      security:
+        - JWTAuth: []
+      operationId: siteDelete
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Deleted successfully
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such site
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /template/create:
+    post:
+      tags:
+        - template
+      summary: create template
+      security:
+        - JWTAuth: []
+      operationId: templateCreate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TemplateInfoInput"
+      responses:
+        200:
+          description: Created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /template/list:
+    get:
+      tags:
+        - template
+      summary: get template list
+      security:
+        - JWTAuth: []
+      operationId: templateList
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  list:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TemplateInfoWithID"
+                  page_max:
+                    $ref: "#/components/schemas/page_max"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /template/info/{id}:
+    get:
+      tags:
+        - template
+      summary: get template info
+      security:
+        - JWTAuth: []
+      operationId: templateInfoGet
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    patch:
+      tags:
+        - template
+      summary: update template info
+      security:
+        - JWTAuth: []
+      operationId: templateInfoUpdate
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TemplateInfoInput"
+      responses:
+        200:
+          description: Updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /template/delete/{id}:
+    delete:
+      tags:
+        - template
+      summary: delete template
+      security:
+        - JWTAuth: []
+      operationId: templateDelete
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Deleted successfully
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /additional-file/create:
+    post:
+      tags:
+        - additional-file
+      summary: create additional-file
+      security:
+        - JWTAuth: []
+      operationId: additionalFileCreate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdditionalFileInfoInput"
+      responses:
+        200:
+          description: Created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdditionalFileInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /additional-file/list:
+    get:
+      tags:
+        - additional-file
+      summary: get additional-file list
+      security:
+        - JWTAuth: []
+      operationId: additionalFileList
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  list:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AdditionalFileInfoWithID"
+                  page_max:
+                    $ref: "#/components/schemas/page_max"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /additional-file/info/{id}:
+    get:
+      tags:
+        - additional-file
+      summary: get additional-file info
+      security:
+        - JWTAuth: []
+      operationId: additionalFileInfoGet
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdditionalFileInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    patch:
+      tags:
+        - additional-file
+      summary: update additional-file info
+      security:
+        - JWTAuth: []
+      operationId: additionalFileInfoUpdate
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdditionalFileInfoInput"
+      responses:
+        200:
+          description: Updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdditionalFileInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /additional-file/delete/{id}:
+    delete:
+      tags:
+        - additional-file
+      summary: delete additional-file
+      security:
+        - JWTAuth: []
+      operationId: additionalFileDelete
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Deleted successfully
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /cert/create:
+    post:
+      tags:
+        - cert
+      summary: create cert
+      security:
+        - JWTAuth: []
+      operationId: certCreate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CertInfoInput"
+      responses:
+        200:
+          description: Created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CertInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /cert/list:
+    get:
+      tags:
+        - cert
+      summary: get cert list
+      security:
+        - JWTAuth: []
+      operationId: certList
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  list:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CertInfoWithID"
+                  page_max:
+                    $ref: "#/components/schemas/page_max"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /cert/info/{id}:
+    get:
+      tags:
+        - cert
+      summary: get cert info
+      security:
+        - JWTAuth: []
+      operationId: certInfoGet
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CertInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such cert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+    patch:
+      tags:
+        - cert
+      summary: update cert info
+      security:
+        - JWTAuth: []
+      operationId: certInfoUpdate
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CertInfoInput"
+      responses:
+        200:
+          description: Updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CertInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such cert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /cert/renew/{id}:
+    post:
+      tags:
+        - cert
+      summary: renew cert
+      security:
+        - JWTAuth: []
+      operationId: certRenew
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Renewed successfully
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /cert/delete/{id}:
+    delete:
+      tags:
+        - cert
+      summary: delete cert
+      security:
+        - JWTAuth: []
+      operationId: certDelete
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Deleted successfully
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such cert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /cert/download/{id}:
+    get:
+      tags:
+        - cert
+      summary: download cert pair
+      security:
+        - JWTAuth: []
+      operationId: certInfoGet
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CertDownload"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such cert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+
+components:
+  parameters:
+    id:
+      name: id
+      in: path
+      description: ID
+      schema:
+        type: integer
+        format: uint
+    page:
+      name: page
+      in: query
+      description: The page number
+      schema:
+        type: integer
+        format: int64
+    limit:
+      name: limit
+      in: query
+      description: Limit the number of items per page
+      schema:
+        type: integer
+        format: uint
+        default: 100
+  schemas:
+    page_max:
+      type: integer
+      format: int64
+    objectWithID:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint
+    timestamp:
+      type: integer
+      format: int64
+      description: unix second
+    ErrorMessage:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Unknown error"
+    UserInfoInput:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Nya Candy
+    UserInfoFull:
+      allOf:
+        - $ref: "#/components/schemas/UserInfoInput"
+        - type: object
+          properties:
+            username:
+              type: string
+              example: Candinya
+            is_admin:
+              type: boolean
+    UserInfoCreate:
+      allOf:
+        - $ref: "#/components/schemas/UserInfoFull"
+        - type: object
+          properties:
+            password:
+              type: string
+    UserInfoWithID:
+      allOf:
+        - $ref: "#/components/schemas/UserInfoFull"
+        - type: object
+          properties:
+            id:
+              $ref: "#/components/schemas/objectWithID"
+    InstanceInfoInput:
+      type: object
+      properties:
+        name:
+          type: string
+        pre_config:
+          type: string
+        is_manual_mode:
+          type: boolean
+        additional_file_ids:
+          type: array
+          description: ID list of additional files
+          items:
+            $ref: "#/components/schemas/objectWithID"
+        site_ids:
+          type: array
+          description: ID list of sites
+          items:
+            $ref: "#/components/schemas/objectWithID"
+    InstanceInfoFull:
+      allOf:
+        - $ref: "#/components/schemas/InstanceInfoInput"
+        - type: object
+          properties:
+            last_seen:
+              $ref: "#/components/schemas/timestamp"
+            additional_files:
+              type: array
+              description: List of additional files
+              items:
+                $ref: "#/components/schemas/AdditionalFileInfoWithID"
+            sites:
+              type: array
+              description: List of sites
+              items:
+                $ref: "#/components/schemas/SiteInfoWithID"
+    InstanceInfoWithID:
+      allOf:
+        - $ref: "#/components/schemas/InstanceInfoFull"
+        - $ref: "#/components/schemas/objectWithID"
+    InstanceInfoWithToken:
+      allOf:
+        - $ref: "#/components/schemas/InstanceInfoWithID"
+        - type: object
+          properties:
+            token:
+              type: string
+    SiteInfoInput:
+      type: object
+      properties:
+        name:
+          type: string
+        origins:
+          type: array
+          items:
+            type: string
+        template_id:
+          type: integer
+          format: uint
+          description: Template ID for this site
+        template_values:
+          type: array
+          items:
+            type: string
+        cert_id:
+          type: integer
+          format: uint
+          description: Cert ID for this site
+    SiteInfoFull:
+      allOf:
+        - $ref: "#/components/schemas/SiteInfoInput"
+        - type: object
+          properties:
+            template:
+              $ref: "#/components/schemas/TemplateInfoWithID"
+            cert:
+              $ref: "#/components/schemas/CertInfoWithID"
+    SiteInfoWithID:
+      allOf:
+        - $ref: "#/components/schemas/SiteInfoFull"
+        - $ref: "#/components/schemas/objectWithID"
+    TemplateInfoInput:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        content:
+          type: string
+        variables:
+          type: array
+          items:
+            type: string
+    TemplateInfoWithID:
+      allOf:
+        - $ref: "#/components/schemas/TemplateInfoInput"
+        - $ref: "#/components/schemas/objectWithID"
+    AdditionalFileInfoInput:
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        content:
+          type: string
+    AdditionalFileInfoWithID:
+      allOf:
+        - $ref: "#/components/schemas/AdditionalFileInfoInput"
+        - $ref: "#/components/schemas/objectWithID"
+    CertInfoInput:
+      type: object
+      properties:
+        name:
+          type: string
+        domains:
+          type: array
+          items:
+            type: string
+        provider:
+          type: string
+    CertInfoWithID:
+      allOf:
+        - $ref: "#/components/schemas/CertInfoInput"
+        - $ref: "#/components/schemas/objectWithID"
+        - type: object
+          properties:
+            expires_at:
+              $ref: "#/components/schemas/timestamp"
+    CertDownload:
+      type: object
+      properties:
+        certificate:
+          type: string
+        private_key:
+          type: string
+        intermediate_certificate:
+          type: string
+        csr:
+          type: string

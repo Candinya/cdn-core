@@ -1,0 +1,115 @@
+openapi: 3.0.1
+info:
+  title: Caddy Delivery Network - Worker API
+  version: 0.0.0
+servers:
+  - url: /api/worker
+paths:
+  /{id}/heartbeat:
+    get:
+      tags:
+        - worker
+      summary: heartbeat event
+      security:
+        - TokenAuth: []
+      operationId: heartbeat
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  config_updated_at:
+                    $ref: "#/components/schemas/timestamp"
+                  files_updated_at:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: string
+                        updated_at:
+                          $ref: "#/components/schemas/timestamp"
+        404:
+          description: No such instance (deleted or token mismatch)
+
+  /{id}/config:
+    get:
+      tags:
+        - worker
+      summary: get config
+      security:
+        - TokenAuth: []
+      operationId: getConfig
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated_at:
+                    $ref: "#/components/schemas/timestamp"
+                  content:
+                    type: string
+                    description: Caddyfile
+        404:
+          description: No such instance (deleted or token mismatch)
+  /{id}/files:
+    post:
+      tags:
+        - worker
+      summary: get files
+      security:
+        - TokenAuth: []
+      operationId: getFiles
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+                description: File path
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    path:
+                      type: string
+                    updated_at:
+                      $ref: "#/components/schemas/timestamp"
+                    content:
+                      type: string
+        404:
+          description: No such instance (deleted or token mismatch)
+
+components:
+  parameters:
+    id:
+      name: id
+      in: path
+      description: ID
+      schema:
+        type: integer
+        format: uint
+  schemas:
+    timestamp:
+      type: integer
+      format: int64
+      description: unix second
