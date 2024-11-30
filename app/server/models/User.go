@@ -1,6 +1,8 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 type User struct {
 	gorm.Model
@@ -11,6 +13,5 @@ type User struct {
 	IsAdmin  bool   `gorm:"column:is_admin"`             // 是否为管理员：管理员可以写入（更改），非管理员只能读取（浏览）
 
 	// 登录与授权认证相关
-	Password   string `gorm:"column:password"`     // 密码，使用 argon2id 储存
-	JWTSignKey string `gorm:"column:jwt_sign_key"` // 用于签发 JWT Token 的密钥
+	Password string `gorm:"column:password"` // 密码，使用 argon2id 储存
 }

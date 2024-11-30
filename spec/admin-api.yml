@@ -53,7 +53,7 @@ paths:
         - user
       summary: create new user
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: userCreate
       requestBody:
         content:
@@ -85,7 +85,7 @@ paths:
         - user
       summary: get user list
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: userList
       parameters:
         - $ref: '#/components/parameters/page'
@@ -245,38 +245,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorMessage"
-  /user/regenerate-token/{id}:
-    post:
-      tags:
-        - user
-      summary: regenerate user JWT token
-      security:
-        - JWTAuth: []
-      operationId: userRegenToken
-      parameters:
-        - $ref: '#/components/parameters/id'
-      responses:
-        200:
-          description: Regenerated successfully
-        403:
-          description: No permission
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorMessage"
-        404:
-          description: No such user
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorMessage"
   /user/delete/{id}:
     delete:
       tags:
         - user
       summary: delete user
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: userDelete
       parameters:
         - $ref: '#/components/parameters/id'
@@ -301,7 +276,7 @@ paths:
         - user
       summary: update role
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: userRoleUpdate
       parameters:
         - $ref: '#/components/parameters/id'
@@ -334,7 +309,7 @@ paths:
         - instance
       summary: create instance
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: instanceCreate
       requestBody:
         content:
@@ -360,7 +335,7 @@ paths:
         - instance
       summary: get instance list
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: instanceList
       parameters:
         - $ref: '#/components/parameters/page'
@@ -391,7 +366,7 @@ paths:
         - instance
       summary: get instance info
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: instanceInfoGet
       parameters:
         - $ref: '#/components/parameters/id'
@@ -419,7 +394,7 @@ paths:
         - instance
       summary: update instance info
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: instanceInfoUpdate
       parameters:
         - $ref: '#/components/parameters/id'
@@ -453,7 +428,7 @@ paths:
         - instance
       summary: delete instance
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: instanceDelete
       parameters:
         - $ref: '#/components/parameters/id'
@@ -478,7 +453,7 @@ paths:
         - instance
       summary: regenerate
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: instanceRotateToken
       parameters:
         - $ref: '#/components/parameters/id'
@@ -507,7 +482,7 @@ paths:
         - site
       summary: create site
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: siteCreate
       requestBody:
         content:
@@ -533,7 +508,7 @@ paths:
         - site
       summary: get site list
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: siteList
       parameters:
         - $ref: '#/components/parameters/page'
@@ -564,7 +539,7 @@ paths:
         - site
       summary: get site info
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: siteInfoGet
       parameters:
         - $ref: '#/components/parameters/id'
@@ -592,7 +567,7 @@ paths:
         - site
       summary: update site info
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: siteInfoUpdate
       parameters:
         - $ref: '#/components/parameters/id'
@@ -626,7 +601,7 @@ paths:
         - site
       summary: delete site
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: siteDelete
       parameters:
         - $ref: '#/components/parameters/id'
@@ -651,7 +626,7 @@ paths:
         - template
       summary: create template
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: templateCreate
       requestBody:
         content:
@@ -677,7 +652,7 @@ paths:
         - template
       summary: get template list
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: templateList
       parameters:
         - $ref: '#/components/parameters/page'
@@ -708,7 +683,7 @@ paths:
         - template
       summary: get template info
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: templateInfoGet
       parameters:
         - $ref: '#/components/parameters/id'
@@ -736,7 +711,7 @@ paths:
         - template
       summary: update template info
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: templateInfoUpdate
       parameters:
         - $ref: '#/components/parameters/id'
@@ -770,7 +745,7 @@ paths:
         - template
       summary: delete template
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: templateDelete
       parameters:
         - $ref: '#/components/parameters/id'
@@ -795,7 +770,7 @@ paths:
         - additional-file
       summary: create additional-file
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: additionalFileCreate
       requestBody:
         content:
@@ -821,7 +796,7 @@ paths:
         - additional-file
       summary: get additional-file list
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: additionalFileList
       parameters:
         - $ref: '#/components/parameters/page'
@@ -852,7 +827,7 @@ paths:
         - additional-file
       summary: get additional-file info
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: additionalFileInfoGet
       parameters:
         - $ref: '#/components/parameters/id'
@@ -880,7 +855,7 @@ paths:
         - additional-file
       summary: update additional-file info
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: additionalFileInfoUpdate
       parameters:
         - $ref: '#/components/parameters/id'
@@ -914,7 +889,7 @@ paths:
         - additional-file
       summary: delete additional-file
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: additionalFileDelete
       parameters:
         - $ref: '#/components/parameters/id'
@@ -939,7 +914,7 @@ paths:
         - cert
       summary: create cert
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: certCreate
       requestBody:
         content:
@@ -965,7 +940,7 @@ paths:
         - cert
       summary: get cert list
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: certList
       parameters:
         - $ref: '#/components/parameters/page'
@@ -996,7 +971,7 @@ paths:
         - cert
       summary: get cert info
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: certInfoGet
       parameters:
         - $ref: '#/components/parameters/id'
@@ -1024,7 +999,7 @@ paths:
         - cert
       summary: update cert info
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: certInfoUpdate
       parameters:
         - $ref: '#/components/parameters/id'
@@ -1058,7 +1033,7 @@ paths:
         - cert
       summary: renew cert
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: certRenew
       parameters:
         - $ref: '#/components/parameters/id'
@@ -1083,7 +1058,7 @@ paths:
         - cert
       summary: delete cert
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: certDelete
       parameters:
         - $ref: '#/components/parameters/id'
@@ -1108,7 +1083,7 @@ paths:
         - cert
       summary: download cert pair
       security:
-        - JWTAuth: []
+        - JWTAuth: [admin]
       operationId: certInfoGet
       parameters:
         - $ref: '#/components/parameters/id'
@@ -1133,6 +1108,10 @@ paths:
                 $ref: "#/components/schemas/ErrorMessage"
 
 components:
+  securitySchemes:
+    JWTAuth:
+      type: http
+      scheme: bearer
   parameters:
     id:
       name: id

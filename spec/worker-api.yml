@@ -106,6 +106,10 @@ paths:
           description: No such instance (deleted or token mismatch) or file
 
 components:
+  securitySchemes:
+    TokenAuth:
+      type: http
+      scheme: bearer
   parameters:
     id:
       name: id
