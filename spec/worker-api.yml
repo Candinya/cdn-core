@@ -5,6 +5,18 @@ info:
 servers:
   - url: /api/worker
 paths:
+  /health:
+    get:
+      tags:
+        - health
+      summary: health check
+      operationId: healthCheck
+      responses:
+        200:
+          description: Success
+        500:
+          description: Internal server error
+
   /{id}/heartbeat:
     get:
       tags:
@@ -62,42 +74,36 @@ paths:
                     description: Caddyfile
         404:
           description: No such instance (deleted or token mismatch)
-  /{id}/files:
-    post:
+  /{id}/file:
+    get:
       tags:
         - worker
-      summary: get files
+      summary: get single file
       security:
         - TokenAuth: []
       operationId: getFiles
       parameters:
         - $ref: '#/components/parameters/id'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                type: string
-                description: File path
+        - in: header
+          name: X-File-Path
+          description: Path of target file
+          schema:
+            type: string
       responses:
         200:
           description: Success
-          content:
-            application/json:
+          headers:
+            X-Updated-At:
+              description: Update timestamp of target file
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    path:
-                      type: string
-                    updated_at:
-                      $ref: "#/components/schemas/timestamp"
-                    content:
-                      type: string
+                $ref: "#/components/schemas/timestamp"
+          content:
+            application/octet-stream: # binary
+              schema:
+                type: string
+                format: binary
         404:
-          description: No such instance (deleted or token mismatch)
+          description: No such instance (deleted or token mismatch) or file
 
 components:
   parameters:
