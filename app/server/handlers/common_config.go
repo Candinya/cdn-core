@@ -10,7 +10,7 @@ import (
 	"text/template"
 )
 
-func (a *App) buildInstanceConfig(instanceID uint) (string, error) {
+func (a *App) buildInstanceConfigByID(instanceID uint) (string, error) {
 	// 寻找 instance
 	var instance models.Instance
 	if err := a.db.First(&instance, "id = ?", instanceID).Error; err != nil {
@@ -18,12 +18,16 @@ func (a *App) buildInstanceConfig(instanceID uint) (string, error) {
 		return "", fmt.Errorf("failed to find instance with id %d: %w", instanceID, err)
 	}
 
+	return a.buildInstanceConfigByModel(&instance)
+}
+
+func (a *App) buildInstanceConfigByModel(instance *models.Instance) (string, error) {
 	// 添加 preconfig 内容
 	configSections := []string{instance.PreConfig}
 
 	// 依次添加站点
 	for _, siteID := range instance.SiteIDs {
-		siteConfig, err := a.buildSiteConfig(siteID)
+		siteConfig, err := a.buildSiteConfigByID(siteID)
 		if err != nil {
 			a.l.Error("failed to build site config", zap.Uint("siteID", siteID), zap.Error(err))
 			return "", fmt.Errorf("failed to build site config %d: %w", siteID, err)
@@ -35,7 +39,7 @@ func (a *App) buildInstanceConfig(instanceID uint) (string, error) {
 	return strings.Join(configSections, "\n\n"), nil
 }
 
-func (a *App) buildSiteConfig(siteID uint) (string, error) {
+func (a *App) buildSiteConfigByID(siteID uint) (string, error) {
 	// 寻找 site
 	var site models.Site
 	if err := a.db.Model(&models.Site{}).

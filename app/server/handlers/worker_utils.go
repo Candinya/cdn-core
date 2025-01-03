@@ -5,15 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 	"net/http"
 	"strings"
 )
 
-func (a *App) getInstance(c echo.Context, id uint) (w *models.Instance, err error, httpStatus int) {
+func (a *App) getInstance(authHeader string, id uint) (w *models.Instance, err error, httpStatus int) {
 	// 提取 token
-	authHeader := c.Request().Header.Get("Authorization")
 	if authHeader == "" {
 		return nil, fmt.Errorf("missing auth token"), http.StatusUnauthorized
 	}
