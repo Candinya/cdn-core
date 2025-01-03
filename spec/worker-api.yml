@@ -33,21 +33,11 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  config_updated_at:
-                    $ref: "#/components/schemas/timestamp"
-                  files_updated_at:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        path:
-                          type: string
-                        updated_at:
-                          $ref: "#/components/schemas/timestamp"
+                $ref: "#/components/schemas/HeartbeatRes"
         404:
           description: No such instance (deleted or token mismatch)
+        500:
+          description: Internal server error
 
   /{id}/config:
     get:
@@ -65,15 +55,12 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  updated_at:
-                    $ref: "#/components/schemas/timestamp"
-                  content:
-                    type: string
-                    description: Caddyfile
+                $ref: "#/components/schemas/GetConfigRes"
         404:
           description: No such instance (deleted or token mismatch)
+        500:
+          description: Internal server error
+
   /{id}/file:
     get:
       tags:
@@ -104,6 +91,8 @@ paths:
                 format: binary
         404:
           description: No such instance (deleted or token mismatch) or file
+        500:
+          description: Internal server error
 
 components:
   securitySchemes:
@@ -123,3 +112,36 @@ components:
       type: integer
       format: int64
       description: unix second
+    HeartbeatRes:
+      type: object
+      required:
+        - config_updated_at
+        - files_updated_at
+      properties:
+        config_updated_at:
+          $ref: "#/components/schemas/timestamp"
+        files_updated_at:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileUpdateRecord"
+    FileUpdateRecord:
+      type: object
+      required:
+        - path
+        - updated_at
+      properties:
+        path:
+          type: string
+        updated_at:
+          $ref: "#/components/schemas/timestamp"
+    GetConfigRes:
+      type: object
+      required:
+        - updated_at
+        - content
+      properties:
+        updated_at:
+          $ref: "#/components/schemas/timestamp"
+        content:
+          type: string
+          description: Caddyfile
