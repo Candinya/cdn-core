@@ -14,18 +14,12 @@ import (
 	"time"
 )
 
-func (a *App) getWorker(c echo.Context) (w *models.Instance, err error) {}
-
-func (a *App) HealthCheck(c echo.Context) error {
-	return c.NoContent(http.StatusOK)
-}
-
-func (a *App) Heartbeat(c echo.Context) error {
+func (a *App) Heartbeat(c echo.Context, id uint) error {
 	// 抓取 worker 信息（认证）
-	w, err := a.getWorker(c)
+	w, err, statusCode := a.getInstance(c, id)
 	if err != nil {
 		a.l.Error("heartbeat get worker", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return c.NoContent(statusCode)
 	}
 
 	rctx := c.Request().Context()
