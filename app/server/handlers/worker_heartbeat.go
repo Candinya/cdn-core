@@ -59,7 +59,10 @@ func (a *App) Heartbeat(c echo.Context, id uint) error {
 		// 检查站点对应的证书文件
 		for _, siteID := range w.SiteIDs {
 			var site models.Site
-			if err := a.db.Model(&models.Site{}).Preload("Cert").Preload("Template").First(&site, "id = ?", siteID).Error; err != nil {
+			if err := a.db.Model(&models.Site{}).
+				Preload("Cert").
+				Preload("Template").
+				First(&site, "id = ?", siteID).Error; err != nil {
 				// 站点记录拉取出错
 				a.l.Error("heartbeat get site", zap.Error(err))
 				return c.NoContent(http.StatusInternalServerError)
@@ -68,6 +71,7 @@ func (a *App) Heartbeat(c echo.Context, id uint) error {
 			// 追加证书文件
 			if site.Cert != nil {
 				certPathPrefix := fmt.Sprintf(constants.CertPathDir, site.CertID)
+				// 基础信息（证书与私钥）
 				res.FilesUpdatedAt = append(res.FilesUpdatedAt, worker.FileUpdateRecord{
 					Path:      certPathPrefix + constants.CertPathCertName,
 					UpdatedAt: site.Cert.UpdatedAt.Unix(),
@@ -76,6 +80,7 @@ func (a *App) Heartbeat(c echo.Context, id uint) error {
 					Path:      certPathPrefix + constants.CertPathKeyName,
 					UpdatedAt: site.Cert.UpdatedAt.Unix(),
 				})
+				// 中间证书
 				if site.Cert.IntermediateCertificate != nil {
 					res.FilesUpdatedAt = append(res.FilesUpdatedAt, worker.FileUpdateRecord{
 						Path:      certPathPrefix + constants.CertPathIntermediateName,
