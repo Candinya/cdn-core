@@ -73,25 +73,25 @@ func initData(db *gorm.DB) (err error) {
 			{
 				Name:        "空白模板",
 				Description: "没有内置任何内容，一切自定义",
-				Content:     "{{.Origin}} {\n{{.Content}}\n}",
+				Content:     "{{.Origin}} {\n    {{.Cert}}\n{{.Content}}\n}",
 				Variables:   []string{"Content"},
 			},
 			{
 				Name:        "简单反代",
 				Description: "简单的反向代理，使用 Caddy 内置的证书管理",
-				Content:     "{{.Origin}} {\n    reverse_proxy {{.Source}}\n}",
+				Content:     "{{.Origin}} {\n    {{.Cert}}\n    reverse_proxy {{.Source}}\n}",
 				Variables:   []string{"Source"},
 			},
 			{
 				Name:        "变源反代",
 				Description: "使用源站（HTTPS）不知道的 SNI 做代理",
-				Content:     "{{.Origin}} {\n    reverse_proxy https://{{.Source}} {\n        header_up Host {{.Source}}\n        transport http {\n            tls\n            tls_server_name {{.Source}}\n        }\n    }\n}",
+				Content:     "{{.Origin}} {\n    {{.Cert}}\n    reverse_proxy https://{{.Source}} {\n        header_up Host {{.Source}}\n        transport http {\n            tls\n            tls_server_name {{.Source}}\n        }\n    }\n}",
 				Variables:   []string{"Source"},
 			},
 			{
-				Name:        "自定义证书与错误转换",
-				Description: "使用自定义证书，并使用自定义的 502 错误页面",
-				Content:     "{{.Origin}} {\n    tls /tls/{{.Origin}}/cert.pem /tls/{{.Origin}}/key.pem\n    reverse_proxy {{.Source}}\n    handle_errors {\n        @badgateway expression `{err.status_code} == 502`\n        handle @badgateway {\n            rewrite * /custom_502.html\n            file_server {\n                status 500\n            }\n        }\n    }\n}\n",
+				Name:        "自定义错误转换",
+				Description: "使用自定义的 502 错误页面",
+				Content:     "{{.Origin}} {\n    {{.Cert}}\n    reverse_proxy {{.Source}}\n    handle_errors {\n        @badgateway expression `{err.status_code} == 502`\n        handle @badgateway {\n            rewrite * /custom_502.html\n            file_server {\n                status 500\n            }\n        }\n    }\n}",
 				Variables:   []string{"Source"},
 			},
 		}).Error; err != nil {
