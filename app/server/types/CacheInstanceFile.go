@@ -16,8 +16,7 @@ const (
 )
 
 type CacheInstanceFile struct {
-	Type    CacheInstanceFileType    `json:"type,omitempty"`
+	Type    CacheInstanceFileType    `json:"type"`
 	Subtype CacheInstanceFileSubtype `json:"subtype,omitempty"`
-	Path    string                   `json:"path,omitempty"`
-	ID      uint                     `json:"id,omitempty"` // File or cert ID
+	ID      uint                     `json:"id"` // File or cert ID
 }

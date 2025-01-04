@@ -18,7 +18,7 @@ type Cert struct {
 
 	// 证书的本体信息
 	Certificate             string  `gorm:"column:certificate"`              // 签发的证书
-	PrivateKey              []byte  `gorm:"column:private_key;type:bytea"`   // 私钥，使用来自环境变量的 secret key 加密
+	PrivateKey              []byte  `gorm:"column:private_key;type:bytea"`   // 私钥，使用来自环境变量的 secret key 加密 (AES-GCM)
 	IntermediateCertificate *string `gorm:"column:intermediate_certificate"` // 中间证书
 	CSR                     string  `gorm:"column:csr"`                      // 签发请求信息
 }

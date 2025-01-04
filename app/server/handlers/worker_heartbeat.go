@@ -25,15 +25,14 @@ func (a *App) buildHeartbeatData(ctx context.Context, w *models.Instance) ([]byt
 		if err := a.db.WithContext(ctx).First(&aFile, "id = ?", fileID).Error; err != nil {
 			// 文件记录拉取出错
 			a.l.Error("heartbeat get file", zap.Uint("fileID", fileID), zap.Error(err))
-			return nil, fmt.Errorf("heartbeat get file: %w", err)
+			return nil, fmt.Errorf("failed to get file: %w", err)
 		}
 
-		// 追加站点文件
+		// 追加文件
 		aFileUpdatedAt := aFile.UpdatedAt.Unix()
 
-		afilePathPrefix := fmt.Sprintf(constants.AFilePathDir, aFile.ID)
 		res.FilesUpdatedAt = append(res.FilesUpdatedAt, worker.FileUpdateRecord{
-			Path:      afilePathPrefix + aFile.Filename,
+			Path:      constants.AFilePathPrefix + aFile.Filename,
 			UpdatedAt: aFileUpdatedAt,
 		})
 	}
@@ -48,10 +47,10 @@ func (a *App) buildHeartbeatData(ctx context.Context, w *models.Instance) ([]byt
 			First(&site, "id = ?", siteID).Error; err != nil {
 			// 站点记录拉取出错
 			a.l.Error("heartbeat get site", zap.Error(err))
-			return nil, fmt.Errorf("heartbeat get site: %w", err)
+			return nil, fmt.Errorf("failed to get site: %w", err)
 		}
 
-		// 追加证书文件
+		// 证书文件
 		if site.Cert != nil {
 			certPathPrefix := fmt.Sprintf(constants.CertPathDir, site.CertID)
 			// 基础信息（证书与私钥）
@@ -89,7 +88,7 @@ func (a *App) buildHeartbeatData(ctx context.Context, w *models.Instance) ([]byt
 	resBytes, err := json.Marshal(res)
 	if err != nil {
 		a.l.Error("heartbeat json marshal", zap.Any("res", res), zap.Error(err))
-		return nil, fmt.Errorf("heartbeat parse data: %w", err)
+		return nil, fmt.Errorf("failed to parse data: %w", err)
 	}
 
 	return resBytes, nil

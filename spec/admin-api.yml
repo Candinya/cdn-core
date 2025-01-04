@@ -774,9 +774,11 @@ paths:
       operationId: additionalFileCreate
       requestBody:
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: "#/components/schemas/AdditionalFileInfoInput"
+              allOf:
+                - $ref: "#/components/schemas/AdditionalFileInfoInput"
+                - $ref: "#/components/schemas/AdditionalFileInfoFile"
       responses:
         200:
           description: Created successfully
@@ -1283,14 +1285,18 @@ components:
       allOf:
         - $ref: "#/components/schemas/TemplateInfoInput"
         - $ref: "#/components/schemas/objectWithID"
+    AdditionalFileInfoFile:
+      type: object
+      properties:
+        content:
+          type: string
+          format: binary
     AdditionalFileInfoInput:
       type: object
       properties:
         name:
           type: string
         path:
-          type: string
-        content:
           type: string
     AdditionalFileInfoWithID:
       allOf:
