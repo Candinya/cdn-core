@@ -4,30 +4,31 @@ import (
 	"bytes"
 	"caddy-delivery-network/app/server/constants"
 	"caddy-delivery-network/app/server/models"
+	"context"
 	"fmt"
 	"go.uber.org/zap"
 	"strings"
 	"text/template"
 )
 
-func (a *App) buildInstanceConfigByID(instanceID uint) (string, error) {
+func (a *App) buildInstanceConfigByID(ctx context.Context, instanceID uint) (string, error) {
 	// 寻找 instance
 	var instance models.Instance
-	if err := a.db.First(&instance, "id = ?", instanceID).Error; err != nil {
+	if err := a.db.WithContext(ctx).First(&instance, "id = ?", instanceID).Error; err != nil {
 		a.l.Error("failed to find instance with id", zap.Uint("instanceID", instanceID), zap.Error(err))
 		return "", fmt.Errorf("failed to find instance with id %d: %w", instanceID, err)
 	}
 
-	return a.buildInstanceConfigByModel(&instance)
+	return a.buildInstanceConfigByModel(ctx, &instance)
 }
 
-func (a *App) buildInstanceConfigByModel(instance *models.Instance) (string, error) {
+func (a *App) buildInstanceConfigByModel(ctx context.Context, instance *models.Instance) (string, error) {
 	// 添加 preconfig 内容
 	configSections := []string{instance.PreConfig}
 
 	// 依次添加站点
 	for _, siteID := range instance.SiteIDs {
-		siteConfig, err := a.buildSiteConfigByID(siteID)
+		siteConfig, err := a.buildSiteConfigByID(ctx, siteID)
 		if err != nil {
 			a.l.Error("failed to build site config", zap.Uint("siteID", siteID), zap.Error(err))
 			return "", fmt.Errorf("failed to build site config %d: %w", siteID, err)
@@ -39,10 +40,11 @@ func (a *App) buildInstanceConfigByModel(instance *models.Instance) (string, err
 	return strings.Join(configSections, "\n\n"), nil
 }
 
-func (a *App) buildSiteConfigByID(siteID uint) (string, error) {
+func (a *App) buildSiteConfigByID(ctx context.Context, siteID uint) (string, error) {
 	// 寻找 site
 	var site models.Site
-	if err := a.db.Model(&models.Site{}).
+	if err := a.db.WithContext(ctx).
+		Model(&models.Site{}).
 		Preload("Cert").
 		Preload("Template").
 		First(&site, "id = ?", siteID).Error; err != nil {
@@ -50,11 +52,15 @@ func (a *App) buildSiteConfigByID(siteID uint) (string, error) {
 		return "", fmt.Errorf("failed to find site with id %d: %w", siteID, err)
 	}
 
+	return a.buildSiteConfigByModel(&site)
+}
+
+func (a *App) buildSiteConfigByModel(site *models.Site) (string, error) {
 	// 准备模板
-	siteTemplate, err := template.New(fmt.Sprintf("site-%d", siteID)).Parse(site.Template.Content)
+	siteTemplate, err := template.New(fmt.Sprintf("site-%d", site.ID)).Parse(site.Template.Content)
 	if err != nil {
-		a.l.Error("failed to parse site template", zap.Uint("siteID", siteID), zap.Error(err))
-		return "", fmt.Errorf("failed to parse site template %d: %w", siteID, err)
+		a.l.Error("failed to parse site template", zap.Uint("siteID", site.ID), zap.Error(err))
+		return "", fmt.Errorf("failed to parse site template %d: %w", site.ID, err)
 	}
 
 	// 准备数据
@@ -91,8 +97,8 @@ func (a *App) buildSiteConfigByID(siteID uint) (string, error) {
 	// 应用模板
 	var buf bytes.Buffer
 	if err := siteTemplate.Execute(&buf, data); err != nil {
-		a.l.Error("failed to execute site template", zap.Uint("siteID", siteID), zap.Any("data", data), zap.Error(err))
-		return "", fmt.Errorf("failed to execute site template %d: %w", siteID, err)
+		a.l.Error("failed to execute site template", zap.Uint("siteID", site.ID), zap.Any("data", data), zap.Error(err))
+		return "", fmt.Errorf("failed to execute site template %d: %w", site.ID, err)
 	}
 
 	// 成功返回

@@ -12,7 +12,7 @@ import (
 
 func (a *App) GetConfig(c echo.Context, id uint) error {
 	// 抓取 worker 信息（认证）
-	w, err, statusCode := a.getInstance(c.Request().Header.Get("Authorization"), id)
+	w, err, statusCode := a.getInstance(c, id)
 	if err != nil {
 		a.l.Error("getconfig get worker", zap.Error(err))
 		return c.NoContent(statusCode)
@@ -28,7 +28,7 @@ func (a *App) GetConfig(c echo.Context, id uint) error {
 		}
 
 		// 产生结果
-		resString, err = a.buildInstanceConfigByModel(w)
+		resString, err = a.buildInstanceConfigByModel(rctx, w)
 		if err != nil {
 			a.l.Error("getconfig build config", zap.Error(err))
 			return c.NoContent(http.StatusInternalServerError)

@@ -4,6 +4,7 @@ import (
 	"caddy-delivery-network/app/server/constants"
 	"caddy-delivery-network/app/server/gen/oapi/worker"
 	"caddy-delivery-network/app/server/models"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,14 +15,14 @@ import (
 	"time"
 )
 
-func (a *App) buildHeartbeatData(w *models.Instance) ([]byte, error) {
+func (a *App) buildHeartbeatData(ctx context.Context, w *models.Instance) ([]byte, error) {
 	var res worker.HeartbeatRes           // 准备结果对象
 	configUpdatedAt := w.UpdatedAt.Unix() // 暂存为实例更新时间，但如果站点有更新，那么这个时间也将会被后移
 
 	// 检查直接追加的附加文件
 	for _, fileID := range w.AdditionalFileIDs {
 		var aFile models.AdditionalFile
-		if err := a.db.First(&aFile, "id = ?", fileID).Error; err != nil {
+		if err := a.db.WithContext(ctx).First(&aFile, "id = ?", fileID).Error; err != nil {
 			// 文件记录拉取出错
 			a.l.Error("heartbeat get file", zap.Uint("fileID", fileID), zap.Error(err))
 			return nil, fmt.Errorf("heartbeat get file: %w", err)
@@ -39,7 +40,8 @@ func (a *App) buildHeartbeatData(w *models.Instance) ([]byte, error) {
 	// 检查站点对应的证书文件
 	for _, siteID := range w.SiteIDs {
 		var site models.Site
-		if err := a.db.Model(&models.Site{}).
+		if err := a.db.WithContext(ctx).
+			Model(&models.Site{}).
 			Preload("Cert").
 			Preload("Template").
 			First(&site, "id = ?", siteID).Error; err != nil {
@@ -94,7 +96,7 @@ func (a *App) buildHeartbeatData(w *models.Instance) ([]byte, error) {
 
 func (a *App) Heartbeat(c echo.Context, id uint) error {
 	// 抓取 worker 信息（认证）
-	w, err, statusCode := a.getInstance(c.Request().Header.Get("Authorization"), id)
+	w, err, statusCode := a.getInstance(c, id)
 	if err != nil {
 		a.l.Error("heartbeat get worker", zap.Error(err))
 		return c.NoContent(statusCode)
@@ -113,7 +115,7 @@ func (a *App) Heartbeat(c echo.Context, id uint) error {
 		}
 
 		// 产生结果
-		resBytes, err = a.buildHeartbeatData(w)
+		resBytes, err = a.buildHeartbeatData(rctx, w)
 		if err != nil {
 			a.l.Error("heartbeat build heartbeat", zap.Error(err))
 			return c.NoContent(http.StatusInternalServerError)
