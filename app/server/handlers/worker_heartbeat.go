@@ -31,8 +31,9 @@ func (a *App) buildHeartbeatData(ctx context.Context, w *models.Instance) ([]byt
 		// 追加站点文件
 		aFileUpdatedAt := aFile.UpdatedAt.Unix()
 
+		afilePathPrefix := fmt.Sprintf(constants.AFilePathDir, aFile.ID)
 		res.FilesUpdatedAt = append(res.FilesUpdatedAt, worker.FileUpdateRecord{
-			Path:      aFile.Path,
+			Path:      afilePathPrefix + aFile.Filename,
 			UpdatedAt: aFileUpdatedAt,
 		})
 	}
