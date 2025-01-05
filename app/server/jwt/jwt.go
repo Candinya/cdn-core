@@ -12,6 +12,7 @@ type JWT struct {
 
 type User struct {
 	ID      uint
+	IsAdmin bool
 	Expires int64 // Unix second
 }
 
@@ -41,10 +42,17 @@ func (j *JWT) ParseUser(tokenString string) (*User, error) {
 	// 匹配内容
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		user.ID = uint(claims["id"].(float64))
-		user.Expires = int64(claims["exp"].(float64)) // 似乎没有用到这个字段，不确定是否需要额外的验证
+		user.IsAdmin = claims["is_admin"].(bool)
+		user.Expires = int64(claims["exp"].(float64))
 	} else {
 		return nil, fmt.Errorf("invalid token")
 	}
+
+	// 不确定是否还需要这个
+	//if time.Now().Unix() > user.Expires {
+	//	// token 已经过时
+	//	return nil, fmt.Errorf("token is expired")
+	//}
 
 	return &user, nil
 }
@@ -52,8 +60,9 @@ func (j *JWT) ParseUser(tokenString string) (*User, error) {
 func (j *JWT) SignToken(user *User) (string, error) {
 	// 创建声明
 	claims := jwt.MapClaims{
-		"id":  user.ID,
-		"exp": user.Expires,
+		"id":       user.ID,
+		"is_admin": user.IsAdmin,
+		"exp":      user.Expires,
 	}
 
 	// 创建令牌

@@ -3,7 +3,6 @@ package constants
 import "time"
 
 const (
-	CacheKeyUserInfo          = "cdn:user:info:%d"
 	CacheKeyInstanceInfo      = "cdn:instance:info:%d"
 	CacheKeyInstanceConfig    = "cdn:instance:config:%d"
 	CacheKeyInstanceFiles     = "cdn:instance:files:%d"
@@ -12,7 +11,6 @@ const (
 )
 
 const (
-	CacheExpireUserInfo          = 1 * time.Hour
 	CacheExpireInstanceInfo      = 1 * time.Hour
 	CacheExpireInstanceConfig    = 12 * time.Hour
 	CacheExpireInstanceHeartbeat = 1 * time.Hour

@@ -92,14 +92,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  list:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/UserInfoWithID"
-                  page_max:
-                    $ref: "#/components/schemas/page_max"
+                $ref: "#/components/schemas/UserListResponse"
         403:
           description: No permission
           content:
@@ -1124,7 +1117,7 @@ components:
       description: The page number
       schema:
         type: integer
-        format: int64
+        format: uint
     limit:
       name: limit
       in: query
@@ -1182,13 +1175,24 @@ components:
           properties:
             password:
               type: string
+        - required:
+          - username
+          - password
     UserInfoWithID:
       allOf:
         - $ref: "#/components/schemas/UserInfoFull"
-        - type: object
-          properties:
-            id:
-              $ref: "#/components/schemas/objectWithID"
+        - $ref: "#/components/schemas/objectWithID"
+    UserListResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserInfoWithID"
+        limit:
+          type: integer
+        page_max:
+          $ref: "#/components/schemas/page_max"
     InstanceInfoInput:
       type: object
       properties:

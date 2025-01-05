@@ -48,8 +48,8 @@ func initData(db *gorm.DB) (err error) {
 		return fmt.Errorf("failed to get user count: %w", err)
 	} else if counter == 0 { // 没有任何用户，添加初始用户
 		// 创建密码
-		var password string
-		if password, err = argon2id.CreateHash("password", argon2id.DefaultParams); err != nil {
+		var passwordHash string
+		if passwordHash, err = argon2id.CreateHash("password", argon2id.DefaultParams); err != nil {
 			return fmt.Errorf("failed to generate password: %w", err)
 		}
 
@@ -58,7 +58,7 @@ func initData(db *gorm.DB) (err error) {
 			Username: "admin",
 			Name:     "CDN Admin",
 			IsAdmin:  true,
-			Password: password,
+			Password: passwordHash,
 		}).Error; err != nil {
 			return fmt.Errorf("failed to create admin user: %w", err)
 		}

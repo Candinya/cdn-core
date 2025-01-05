@@ -18,7 +18,7 @@ func (a *App) AuthLogin(c echo.Context) error {
 	rctx := c.Request().Context()
 
 	// 绑定请求体
-	var req admin.AuthLoginJSONBody
+	var req admin.AuthLoginJSONRequestBody
 	if err := c.Bind(&req); err != nil {
 		a.l.Error("failed to bind json body", zap.Error(err))
 		return c.NoContent(http.StatusBadRequest)
@@ -50,6 +50,7 @@ func (a *App) AuthLogin(c echo.Context) error {
 	expires := time.Now().Add(constants.AuthTokenDuration)
 	token, err := a.jwt.SignToken(&jwt.User{
 		ID:      user.ID,
+		IsAdmin: user.IsAdmin,
 		Expires: expires.Unix(),
 	})
 	if err != nil {
