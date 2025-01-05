@@ -35,7 +35,7 @@ func (a *App) GetConfig(c echo.Context, id uint) error {
 		}
 
 		// 加入缓存
-		a.rdb.Set(rctx, fmt.Sprintf(constants.CacheKeyInstanceConfig, w.ID), resString, constants.CacheExpireInstanceHeartbeat)
+		a.rdb.Set(rctx, fmt.Sprintf(constants.CacheKeyInstanceConfig, w.ID), resString, constants.CacheExpireInstanceConfig)
 	} else {
 		resString = data
 	}
