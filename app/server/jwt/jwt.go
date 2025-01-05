@@ -30,7 +30,7 @@ func (j *JWT) ParseUser(tokenString string) (*User, error) {
 	}
 
 	// 映射字段
-	user := &User{}
+	var user User
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return j.key, nil
 	})
@@ -41,12 +41,12 @@ func (j *JWT) ParseUser(tokenString string) (*User, error) {
 	// 匹配内容
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		user.ID = uint(claims["id"].(float64))
-		user.Expires = int64(claims["exp"].(float64))
+		user.Expires = int64(claims["exp"].(float64)) // 似乎没有用到这个字段，不确定是否需要额外的验证
 	} else {
 		return nil, fmt.Errorf("invalid token")
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 func (j *JWT) SignToken(user *User) (string, error) {

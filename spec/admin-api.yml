@@ -42,11 +42,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  token:
-                    type: string
-                    description: JWT Token
+                $ref: "#/components/schemas/LoginToken"
   /user/create:
     post:
       tags:
@@ -1157,6 +1153,12 @@ components:
         message:
           type: string
           example: "Unknown error"
+    LoginToken:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT Token
     UserInfoInput:
       type: object
       properties:
