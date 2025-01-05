@@ -1086,7 +1086,7 @@ paths:
       summary: download cert pair
       security:
         - JWTAuth: [admin]
-      operationId: certInfoGet
+      operationId: certInfoDownload
       parameters:
         - $ref: '#/components/parameters/id'
       responses:
