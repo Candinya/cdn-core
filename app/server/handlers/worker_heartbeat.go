@@ -96,7 +96,7 @@ func (a *App) buildHeartbeatData(ctx context.Context, w *models.Instance) ([]byt
 
 func (a *App) Heartbeat(c echo.Context, id uint) error {
 	// 抓取 worker 信息（认证）
-	w, err, statusCode := a.getInstance(c, id)
+	w, err, statusCode := a.authInstance(c, id)
 	if err != nil {
 		a.l.Error("heartbeat get worker", zap.Error(err))
 		return c.NoContent(statusCode)

@@ -12,7 +12,7 @@ import (
 
 func (a *App) GetConfig(c echo.Context, id uint) error {
 	// 抓取 worker 信息（认证）
-	w, err, statusCode := a.getInstance(c, id)
+	w, err, statusCode := a.authInstance(c, id)
 	if err != nil {
 		a.l.Error("getconfig get worker", zap.Error(err))
 		return c.NoContent(statusCode)

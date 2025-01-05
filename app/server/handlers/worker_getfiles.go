@@ -142,7 +142,7 @@ func (a *App) getFileByMeta(ctx context.Context, fileMeta *types.CacheInstanceFi
 
 func (a *App) GetFiles(c echo.Context, id uint, params worker.GetFilesParams) error {
 	// 抓取 worker 信息（认证）
-	w, err, statusCode := a.getInstance(c, id)
+	w, err, statusCode := a.authInstance(c, id)
 	if err != nil {
 		a.l.Error("getfiles get worker", zap.Error(err))
 		return c.NoContent(statusCode)

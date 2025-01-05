@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-func (a *App) getInstance(c echo.Context, id uint) (*models.Instance, error, int) {
+func (a *App) authInstance(c echo.Context, id uint) (*models.Instance, error, int) {
 	var instance models.Instance
 
 	rctx := c.Request().Context()
