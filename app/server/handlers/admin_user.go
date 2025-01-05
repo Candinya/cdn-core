@@ -13,7 +13,7 @@ import (
 
 func (a *App) UserCreate(c echo.Context) error {
 	// 抓取 user 信息（认证）
-	_, err, statusCode := a.authUser(c, true)
+	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
 		return c.NoContent(statusCode)
@@ -61,8 +61,8 @@ func (a *App) UserCreate(c echo.Context) error {
 }
 
 func (a *App) UserList(c echo.Context, params admin.UserListParams) error {
-	// 列出用户信息
-	_, err, statusCode := a.authUser(c, true)
+	// 抓取 user 信息（认证）
+	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
 		return c.NoContent(statusCode)
@@ -77,12 +77,12 @@ func (a *App) UserList(c echo.Context, params admin.UserListParams) error {
 
 	page, limit := a.parsePagination(params.Page, params.Limit)
 
-	if err := a.db.WithContext(rctx).Model(&models.User{}).Limit(limit).Offset(page * limit).Find(&users); err != nil {
-		a.l.Error("failed to get user list")
+	if err := a.db.WithContext(rctx).Model(&models.User{}).Limit(limit).Offset(page * limit).Find(&users).Error; err != nil {
+		a.l.Error("failed to get user list", zap.Error(err))
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	if err := a.db.WithContext(rctx).Model(&models.User{}).Count(&usersCount).Error; err != nil {
-		a.l.Error("failed to count user")
+		a.l.Error("failed to count user", zap.Error(err))
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
@@ -109,16 +109,11 @@ func (a *App) UserList(c echo.Context, params admin.UserListParams) error {
 }
 
 func (a *App) UserInfoGet(c echo.Context, id uint) error {
-	// 列出用户信息
-	jwtUser, err, statusCode := a.authUser(c, false)
+	// 抓取 user 信息（认证）
+	err, statusCode := a.authAdmin(c, false, &id)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
 		return c.NoContent(statusCode)
-	}
-
-	// 检查权限
-	if jwtUser.ID != id && !jwtUser.IsAdmin {
-		return c.NoContent(http.StatusForbidden)
 	}
 
 	rctx := c.Request().Context()
@@ -143,16 +138,11 @@ func (a *App) UserInfoGet(c echo.Context, id uint) error {
 }
 
 func (a *App) UserInfoUpdate(c echo.Context, id uint) error {
-	// 列出用户信息
-	jwtUser, err, statusCode := a.authUser(c, false)
+	// 抓取 user 信息（认证）
+	err, statusCode := a.authAdmin(c, false, &id)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
 		return c.NoContent(statusCode)
-	}
-
-	// 检查权限
-	if jwtUser.ID != id && !jwtUser.IsAdmin {
-		return c.NoContent(http.StatusForbidden)
 	}
 
 	rctx := c.Request().Context()
@@ -190,16 +180,11 @@ func (a *App) UserInfoUpdate(c echo.Context, id uint) error {
 }
 
 func (a *App) UserUsernameUpdate(c echo.Context, id uint) error {
-	// 列出用户信息
-	jwtUser, err, statusCode := a.authUser(c, false)
+	// 抓取 user 信息（认证）
+	err, statusCode := a.authAdmin(c, false, &id)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
 		return c.NoContent(statusCode)
-	}
-
-	// 检查权限
-	if jwtUser.ID != id && !jwtUser.IsAdmin {
-		return c.NoContent(http.StatusForbidden)
 	}
 
 	rctx := c.Request().Context()
@@ -240,16 +225,11 @@ func (a *App) UserUsernameUpdate(c echo.Context, id uint) error {
 }
 
 func (a *App) UserPasswordUpdate(c echo.Context, id uint) error {
-	// 列出用户信息
-	jwtUser, err, statusCode := a.authUser(c, false)
+	// 抓取 user 信息（认证）
+	err, statusCode := a.authAdmin(c, false, &id)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
 		return c.NoContent(statusCode)
-	}
-
-	// 检查权限
-	if jwtUser.ID != id && !jwtUser.IsAdmin {
-		return c.NoContent(http.StatusForbidden)
 	}
 
 	rctx := c.Request().Context()
@@ -291,34 +271,18 @@ func (a *App) UserPasswordUpdate(c echo.Context, id uint) error {
 }
 
 func (a *App) UserDelete(c echo.Context, id uint) error {
-	// 列出用户信息
-	jwtUser, err, statusCode := a.authUser(c, false)
+	// 抓取 user 信息（认证）
+	err, statusCode := a.authAdmin(c, false, &id)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
 		return c.NoContent(statusCode)
 	}
 
-	// 检查权限
-	if jwtUser.ID != id && !jwtUser.IsAdmin {
-		return c.NoContent(http.StatusForbidden)
-	}
-
 	rctx := c.Request().Context()
 
-	// 从数据库中获得指定的用户
-	var user models.User
-	if err := a.db.WithContext(rctx).First(&user, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
-		} else {
-			a.l.Error("failed to get user", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
-		}
-	}
-
 	// 删除用户
-	if err := a.db.WithContext(rctx).Delete(&user).Error; err != nil {
-		a.l.Error("failed to delete user", zap.Any("user", user), zap.Error(err))
+	if err := a.db.WithContext(rctx).Delete(&models.User{}, id).Error; err != nil {
+		a.l.Error("failed to delete user", zap.Uint("id", id), zap.Error(err))
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
@@ -326,8 +290,8 @@ func (a *App) UserDelete(c echo.Context, id uint) error {
 }
 
 func (a *App) UserRoleUpdate(c echo.Context, id uint) error {
-	// 列出用户信息
-	_, err, statusCode := a.authUser(c, true)
+	// 抓取 user 信息（认证）
+	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
 		return c.NoContent(statusCode)

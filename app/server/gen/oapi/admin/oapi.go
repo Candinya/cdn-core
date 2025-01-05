@@ -36,9 +36,9 @@ type AdditionalFileInfoInput struct {
 
 // AdditionalFileInfoWithID defines model for AdditionalFileInfoWithID.
 type AdditionalFileInfoWithID struct {
-	Id   *uint   `json:"id,omitempty"`
-	Name *string `json:"name,omitempty"`
-	Path *string `json:"path,omitempty"`
+	Id   *ObjectID `json:"id,omitempty"`
+	Name *string   `json:"name,omitempty"`
+	Path *string   `json:"path,omitempty"`
 }
 
 // CertDownload defines model for CertDownload.
@@ -62,7 +62,7 @@ type CertInfoWithID struct {
 
 	// ExpiresAt unix second
 	ExpiresAt *Timestamp `json:"expires_at,omitempty"`
-	Id        *uint      `json:"id,omitempty"`
+	Id        *ObjectID  `json:"id,omitempty"`
 	Name      *string    `json:"name,omitempty"`
 	Provider  *string    `json:"provider,omitempty"`
 }
@@ -75,11 +75,8 @@ type ErrorMessage struct {
 // InstanceInfoFull defines model for InstanceInfoFull.
 type InstanceInfoFull struct {
 	// AdditionalFileIds ID list of additional files
-	AdditionalFileIds *[]ObjectWithID `json:"additional_file_ids,omitempty"`
-
-	// AdditionalFiles List of additional files
-	AdditionalFiles *[]AdditionalFileInfoWithID `json:"additional_files,omitempty"`
-	IsManualMode    *bool                       `json:"is_manual_mode,omitempty"`
+	AdditionalFileIds *[]ObjectID `json:"additional_file_ids,omitempty"`
+	IsManualMode      *bool       `json:"is_manual_mode,omitempty"`
 
 	// LastSeen unix second
 	LastSeen  *Timestamp `json:"last_seen,omitempty"`
@@ -87,33 +84,27 @@ type InstanceInfoFull struct {
 	PreConfig *string    `json:"pre_config,omitempty"`
 
 	// SiteIds ID list of sites
-	SiteIds *[]ObjectWithID `json:"site_ids,omitempty"`
-
-	// Sites List of sites
-	Sites *[]SiteInfoWithID `json:"sites,omitempty"`
+	SiteIds *[]ObjectID `json:"site_ids,omitempty"`
 }
 
 // InstanceInfoInput defines model for InstanceInfoInput.
 type InstanceInfoInput struct {
 	// AdditionalFileIds ID list of additional files
-	AdditionalFileIds *[]ObjectWithID `json:"additional_file_ids,omitempty"`
-	IsManualMode      *bool           `json:"is_manual_mode,omitempty"`
-	Name              *string         `json:"name,omitempty"`
-	PreConfig         *string         `json:"pre_config,omitempty"`
+	AdditionalFileIds *[]ObjectID `json:"additional_file_ids,omitempty"`
+	IsManualMode      *bool       `json:"is_manual_mode,omitempty"`
+	Name              *string     `json:"name,omitempty"`
+	PreConfig         *string     `json:"pre_config,omitempty"`
 
 	// SiteIds ID list of sites
-	SiteIds *[]ObjectWithID `json:"site_ids,omitempty"`
+	SiteIds *[]ObjectID `json:"site_ids,omitempty"`
 }
 
 // InstanceInfoWithID defines model for InstanceInfoWithID.
 type InstanceInfoWithID struct {
 	// AdditionalFileIds ID list of additional files
-	AdditionalFileIds *[]ObjectWithID `json:"additional_file_ids,omitempty"`
-
-	// AdditionalFiles List of additional files
-	AdditionalFiles *[]AdditionalFileInfoWithID `json:"additional_files,omitempty"`
-	Id              *uint                       `json:"id,omitempty"`
-	IsManualMode    *bool                       `json:"is_manual_mode,omitempty"`
+	AdditionalFileIds *[]ObjectID `json:"additional_file_ids,omitempty"`
+	Id                *ObjectID   `json:"id,omitempty"`
+	IsManualMode      *bool       `json:"is_manual_mode,omitempty"`
 
 	// LastSeen unix second
 	LastSeen  *Timestamp `json:"last_seen,omitempty"`
@@ -121,21 +112,15 @@ type InstanceInfoWithID struct {
 	PreConfig *string    `json:"pre_config,omitempty"`
 
 	// SiteIds ID list of sites
-	SiteIds *[]ObjectWithID `json:"site_ids,omitempty"`
-
-	// Sites List of sites
-	Sites *[]SiteInfoWithID `json:"sites,omitempty"`
+	SiteIds *[]ObjectID `json:"site_ids,omitempty"`
 }
 
 // InstanceInfoWithToken defines model for InstanceInfoWithToken.
 type InstanceInfoWithToken struct {
 	// AdditionalFileIds ID list of additional files
-	AdditionalFileIds *[]ObjectWithID `json:"additional_file_ids,omitempty"`
-
-	// AdditionalFiles List of additional files
-	AdditionalFiles *[]AdditionalFileInfoWithID `json:"additional_files,omitempty"`
-	Id              *uint                       `json:"id,omitempty"`
-	IsManualMode    *bool                       `json:"is_manual_mode,omitempty"`
+	AdditionalFileIds *[]ObjectID `json:"additional_file_ids,omitempty"`
+	Id                *ObjectID   `json:"id,omitempty"`
+	IsManualMode      *bool       `json:"is_manual_mode,omitempty"`
 
 	// LastSeen unix second
 	LastSeen  *Timestamp `json:"last_seen,omitempty"`
@@ -143,11 +128,15 @@ type InstanceInfoWithToken struct {
 	PreConfig *string    `json:"pre_config,omitempty"`
 
 	// SiteIds ID list of sites
-	SiteIds *[]ObjectWithID `json:"site_ids,omitempty"`
+	SiteIds *[]ObjectID `json:"site_ids,omitempty"`
+	Token   *string     `json:"token,omitempty"`
+}
 
-	// Sites List of sites
-	Sites *[]SiteInfoWithID `json:"sites,omitempty"`
-	Token *string           `json:"token,omitempty"`
+// InstanceListResponse defines model for InstanceListResponse.
+type InstanceListResponse struct {
+	Limit   *int                  `json:"limit,omitempty"`
+	List    *[]InstanceInfoWithID `json:"list,omitempty"`
+	PageMax *PageMax              `json:"page_max,omitempty"`
 }
 
 // LoginToken defines model for LoginToken.
@@ -189,7 +178,7 @@ type SiteInfoWithID struct {
 
 	// CertId Cert ID for this site
 	CertId   *uint               `json:"cert_id,omitempty"`
-	Id       *uint               `json:"id,omitempty"`
+	Id       *ObjectID           `json:"id,omitempty"`
 	Name     *string             `json:"name,omitempty"`
 	Origins  *[]string           `json:"origins,omitempty"`
 	Template *TemplateInfoWithID `json:"template,omitempty"`
@@ -211,7 +200,7 @@ type TemplateInfoInput struct {
 type TemplateInfoWithID struct {
 	Content     *string   `json:"content,omitempty"`
 	Description *string   `json:"description,omitempty"`
-	Id          *uint     `json:"id,omitempty"`
+	Id          *ObjectID `json:"id,omitempty"`
 	Name        *string   `json:"name,omitempty"`
 	Variables   *[]string `json:"variables,omitempty"`
 }
@@ -238,10 +227,10 @@ type UserInfoInput struct {
 
 // UserInfoWithID defines model for UserInfoWithID.
 type UserInfoWithID struct {
-	Id       *uint   `json:"id,omitempty"`
-	IsAdmin  *bool   `json:"is_admin,omitempty"`
-	Name     *string `json:"name,omitempty"`
-	Username *string `json:"username,omitempty"`
+	Id       *ObjectID `json:"id,omitempty"`
+	IsAdmin  *bool     `json:"is_admin,omitempty"`
+	Name     *string   `json:"name,omitempty"`
+	Username *string   `json:"username,omitempty"`
 }
 
 // UserListResponse defines model for UserListResponse.
@@ -251,9 +240,12 @@ type UserListResponse struct {
 	PageMax *PageMax          `json:"page_max,omitempty"`
 }
 
+// ObjectID defines model for objectID.
+type ObjectID = uint
+
 // ObjectWithID defines model for objectWithID.
 type ObjectWithID struct {
-	Id *uint `json:"id,omitempty"`
+	Id *ObjectID `json:"id,omitempty"`
 }
 
 // PageMax defines model for page_max.
@@ -1274,46 +1266,46 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"KVqgOS7IXK+c3e3u/wEAAP//ajo6i7NoAAA=",
+	"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",
+	"2/vt/wMAAP//LZnRp71oAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -1,0 +1,271 @@
+package handlers
+
+import (
+	"caddy-delivery-network/app/server/constants"
+	"caddy-delivery-network/app/server/gen/oapi/admin"
+	"caddy-delivery-network/app/server/models"
+	"context"
+	"errors"
+	"fmt"
+	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
+	"net/http"
+)
+
+func (a *App) instanceGetLastSeen(ctx context.Context, isManualMode bool, id uint) *int64 {
+	// 获取 last seen 数据
+	if !isManualMode {
+		cacheKey := fmt.Sprintf(constants.CacheKeyInstanceLastseen, id)
+		if lastSeenTs, err := a.rdb.Get(ctx, cacheKey).Int64(); err != nil {
+			a.l.Error("failed to get instance last seen", zap.Uint("id", id), zap.Error(err))
+		} else {
+			return &lastSeenTs
+		}
+	}
+
+	return nil
+}
+
+func (a *App) InstanceCreate(c echo.Context) error {
+	// 抓取 user 信息（认证）
+	err, statusCode := a.authAdmin(c, true, nil)
+	if err != nil {
+		a.l.Error("failed to auth", zap.Error(err))
+		return c.NoContent(statusCode)
+	}
+
+	rctx := c.Request().Context()
+
+	// 绑定请求体
+	var req admin.InstanceCreateJSONRequestBody
+	if err = c.Bind(&req); err != nil {
+		a.l.Error("failed to bind request", zap.Error(err))
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	// 创建
+	instance := models.Instance{
+		Token: uuid.New(),
+	}
+	if req.Name != nil {
+		instance.Name = *req.Name
+	}
+	if req.PreConfig != nil {
+		instance.PreConfig = *req.PreConfig
+	}
+	if req.IsManualMode != nil {
+		instance.IsManualMode = *req.IsManualMode
+	}
+	if req.AdditionalFileIds != nil {
+		instance.AdditionalFileIDs = *req.AdditionalFileIds
+	}
+	if req.SiteIds != nil {
+		instance.SiteIDs = *req.SiteIds
+	}
+
+	if err := a.db.WithContext(rctx).Create(&instance).Error; err != nil {
+		a.l.Error("failed to create instance", zap.Any("instance", instance), zap.Error(err))
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	tokenStr := instance.Token.String()
+	return c.JSON(http.StatusCreated, &admin.InstanceInfoWithToken{
+		Id:                &instance.ID,
+		Name:              &instance.Name,
+		Token:             &tokenStr,
+		PreConfig:         &instance.PreConfig,
+		IsManualMode:      &instance.IsManualMode,
+		AdditionalFileIds: &instance.AdditionalFileIDs,
+		SiteIds:           &instance.SiteIDs,
+	})
+}
+
+func (a *App) InstanceList(c echo.Context, params admin.InstanceListParams) error {
+	// 抓取 user 信息（认证）
+	err, statusCode := a.authAdmin(c, false, nil)
+	if err != nil {
+		a.l.Error("failed to auth", zap.Error(err))
+		return c.NoContent(statusCode)
+	}
+
+	rctx := c.Request().Context()
+
+	var (
+		instances      []models.Instance
+		instancesCount int64
+	)
+
+	page, limit := a.parsePagination(params.Page, params.Limit)
+
+	if err := a.db.WithContext(rctx).Model(&models.Instance{}).Limit(limit).Offset(page * limit).Find(&instances).Error; err != nil {
+		a.l.Error("failed to get instance list", zap.Error(err))
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	if err := a.db.WithContext(rctx).Model(&models.Instance{}).Count(&instancesCount).Error; err != nil {
+		a.l.Error("failed to count instance", zap.Error(err))
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	pageMax := instancesCount / int64(limit)
+	if (instancesCount % int64(limit)) != 0 {
+		pageMax++
+	}
+
+	var resInstances []admin.InstanceInfoWithID
+	for _, instance := range instances {
+		resInstances = append(resInstances, admin.InstanceInfoWithID{
+			Id:       &instance.ID,
+			Name:     &instance.Name,
+			LastSeen: a.instanceGetLastSeen(rctx, instance.IsManualMode, instance.ID),
+		})
+	}
+
+	return c.JSON(http.StatusOK, &admin.InstanceListResponse{
+		Limit:   &limit,
+		PageMax: &pageMax,
+		List:    &resInstances,
+	})
+}
+
+func (a *App) InstanceInfoGet(c echo.Context, id uint) error {
+	// 抓取 user 信息（认证）
+	err, statusCode := a.authAdmin(c, false, nil)
+	if err != nil {
+		a.l.Error("failed to auth", zap.Error(err))
+		return c.NoContent(statusCode)
+	}
+
+	rctx := c.Request().Context()
+
+	// 从数据库中获得
+	var instance models.Instance
+	if err := a.db.WithContext(rctx).First(&instance, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.NoContent(http.StatusNotFound)
+		} else {
+			a.l.Error("failed to get instance", zap.Uint("id", id), zap.Error(err))
+			return c.NoContent(http.StatusInternalServerError)
+		}
+	}
+
+	tokenStr := instance.Token.String()
+
+	return c.JSON(http.StatusCreated, &admin.InstanceInfoWithToken{
+		Id:                &instance.ID,
+		Name:              &instance.Name,
+		Token:             &tokenStr,
+		PreConfig:         &instance.PreConfig,
+		IsManualMode:      &instance.IsManualMode,
+		AdditionalFileIds: &instance.AdditionalFileIDs,
+		SiteIds:           &instance.SiteIDs,
+		LastSeen:          a.instanceGetLastSeen(rctx, instance.IsManualMode, instance.ID),
+	})
+}
+
+func (a *App) InstanceInfoUpdate(c echo.Context, id uint) error {
+	// 抓取 user 信息（认证）
+	err, statusCode := a.authAdmin(c, true, nil)
+	if err != nil {
+		a.l.Error("failed to get user", zap.Error(err))
+		return c.NoContent(statusCode)
+	}
+
+	rctx := c.Request().Context()
+
+	// 绑定请求体
+	var req admin.InstanceInfoUpdateJSONRequestBody
+	if err = c.Bind(&req); err != nil {
+		a.l.Error("failed to bind request", zap.Error(err))
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	// 从数据库中获得
+	var instance models.Instance
+	if err := a.db.WithContext(rctx).First(&instance, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.NoContent(http.StatusNotFound)
+		} else {
+			a.l.Error("failed to get instance", zap.Uint("id", id), zap.Error(err))
+			return c.NoContent(http.StatusInternalServerError)
+		}
+	}
+
+	// 更新信息
+	if err := a.db.WithContext(rctx).Model(&instance).Updates(&req).Error; err != nil {
+		a.l.Error("failed to update instance", zap.Any("instance", instance), zap.Error(err))
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	return c.JSON(http.StatusCreated, &admin.InstanceInfoWithID{
+		Id:                &instance.ID,
+		Name:              &instance.Name,
+		PreConfig:         &instance.PreConfig,
+		IsManualMode:      &instance.IsManualMode,
+		AdditionalFileIds: &instance.AdditionalFileIDs,
+		SiteIds:           &instance.SiteIDs,
+		LastSeen:          a.instanceGetLastSeen(rctx, instance.IsManualMode, instance.ID),
+	})
+}
+
+func (a *App) InstanceRotateToken(c echo.Context, id uint) error {
+	// 抓取 user 信息（认证）
+	err, statusCode := a.authAdmin(c, true, nil)
+	if err != nil {
+		a.l.Error("failed to get user", zap.Error(err))
+		return c.NoContent(statusCode)
+	}
+
+	rctx := c.Request().Context()
+
+	// 从数据库中获得
+	var instance models.Instance
+	if err := a.db.WithContext(rctx).First(&instance, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.NoContent(http.StatusNotFound)
+		} else {
+			a.l.Error("failed to get instance", zap.Uint("id", id), zap.Error(err))
+			return c.NoContent(http.StatusInternalServerError)
+		}
+	}
+
+	// 更新信息
+	newToken := uuid.New()
+	if err := a.db.WithContext(rctx).Model(&instance).Update("token", newToken).Error; err != nil {
+		a.l.Error("failed to update instance", zap.Any("instance", instance), zap.Error(err))
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	tokenStr := instance.Token.String()
+
+	return c.JSON(http.StatusCreated, &admin.InstanceInfoWithToken{
+		Id:                &instance.ID,
+		Name:              &instance.Name,
+		Token:             &tokenStr,
+		PreConfig:         &instance.PreConfig,
+		IsManualMode:      &instance.IsManualMode,
+		AdditionalFileIds: &instance.AdditionalFileIDs,
+		SiteIds:           &instance.SiteIDs,
+		LastSeen:          a.instanceGetLastSeen(rctx, instance.IsManualMode, instance.ID),
+	})
+}
+
+func (a *App) InstanceDelete(c echo.Context, id uint) error {
+	// 抓取 user 信息（认证）
+	err, statusCode := a.authAdmin(c, true, nil)
+	if err != nil {
+		a.l.Error("failed to get user", zap.Error(err))
+		return c.NoContent(statusCode)
+	}
+
+	rctx := c.Request().Context()
+
+	// 删除
+	if err := a.db.WithContext(rctx).Delete(&models.Instance{}, id).Error; err != nil {
+		a.l.Error("failed to delete instance", zap.Uint("id", id), zap.Error(err))
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	return c.NoContent(http.StatusOK)
+}

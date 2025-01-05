@@ -365,7 +365,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InstanceInfoWithID"
+                $ref: "#/components/schemas/InstanceInfoWithToken"
         403:
           description: No permission
           content:
@@ -1130,12 +1130,14 @@ components:
     page_max:
       type: integer
       format: int64
+    objectID:
+      type: integer
+      format: uint
     objectWithID:
       type: object
       properties:
         id:
-          type: integer
-          format: uint
+          $ref: "#/components/schemas/objectID"
     timestamp:
       type: integer
       format: int64
@@ -1206,12 +1208,12 @@ components:
           type: array
           description: ID list of additional files
           items:
-            $ref: "#/components/schemas/objectWithID"
+            $ref: "#/components/schemas/objectID"
         site_ids:
           type: array
           description: ID list of sites
           items:
-            $ref: "#/components/schemas/objectWithID"
+            $ref: "#/components/schemas/objectID"
     InstanceInfoFull:
       allOf:
         - $ref: "#/components/schemas/InstanceInfoInput"
@@ -1219,16 +1221,16 @@ components:
           properties:
             last_seen:
               $ref: "#/components/schemas/timestamp"
-            additional_files:
-              type: array
-              description: List of additional files
-              items:
-                $ref: "#/components/schemas/AdditionalFileInfoWithID"
-            sites:
-              type: array
-              description: List of sites
-              items:
-                $ref: "#/components/schemas/SiteInfoWithID"
+#            additional_files:
+#              type: array
+#              description: List of additional files
+#              items:
+#                $ref: "#/components/schemas/AdditionalFileInfoWithID"
+#            sites:
+#              type: array
+#              description: List of sites
+#              items:
+#                $ref: "#/components/schemas/SiteInfoWithID"
     InstanceInfoWithID:
       allOf:
         - $ref: "#/components/schemas/InstanceInfoFull"
@@ -1240,6 +1242,17 @@ components:
           properties:
             token:
               type: string
+    InstanceListResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/InstanceInfoWithID"
+        limit:
+          type: integer
+        page_max:
+          $ref: "#/components/schemas/page_max"
     SiteInfoInput:
       type: object
       properties:
