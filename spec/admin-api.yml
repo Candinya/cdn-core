@@ -324,7 +324,7 @@ paths:
         - instance
       summary: get instance list
       security:
-        - JWTAuth: [admin]
+        - JWTAuth: []
       operationId: instanceList
       parameters:
         - $ref: '#/components/parameters/page'
@@ -355,7 +355,7 @@ paths:
         - instance
       summary: get instance info
       security:
-        - JWTAuth: [admin]
+        - JWTAuth: []
       operationId: instanceInfoGet
       parameters:
         - $ref: '#/components/parameters/id'
@@ -440,7 +440,7 @@ paths:
     post:
       tags:
         - instance
-      summary: regenerate
+      summary: regenerate instance token
       security:
         - JWTAuth: [admin]
       operationId: instanceRotateToken
@@ -497,7 +497,7 @@ paths:
         - site
       summary: get site list
       security:
-        - JWTAuth: [admin]
+        - JWTAuth: []
       operationId: siteList
       parameters:
         - $ref: '#/components/parameters/page'
@@ -528,7 +528,7 @@ paths:
         - site
       summary: get site info
       security:
-        - JWTAuth: [admin]
+        - JWTAuth: []
       operationId: siteInfoGet
       parameters:
         - $ref: '#/components/parameters/id'
@@ -641,7 +641,7 @@ paths:
         - template
       summary: get template list
       security:
-        - JWTAuth: [admin]
+        - JWTAuth: []
       operationId: templateList
       parameters:
         - $ref: '#/components/parameters/page'
@@ -672,7 +672,7 @@ paths:
         - template
       summary: get template info
       security:
-        - JWTAuth: [admin]
+        - JWTAuth: []
       operationId: templateInfoGet
       parameters:
         - $ref: '#/components/parameters/id'
@@ -787,7 +787,7 @@ paths:
         - additional-file
       summary: get additional-file list
       security:
-        - JWTAuth: [admin]
+        - JWTAuth: []
       operationId: additionalFileList
       parameters:
         - $ref: '#/components/parameters/page'
@@ -818,7 +818,7 @@ paths:
         - additional-file
       summary: get additional-file info
       security:
-        - JWTAuth: [admin]
+        - JWTAuth: []
       operationId: additionalFileInfoGet
       parameters:
         - $ref: '#/components/parameters/id'
@@ -931,7 +931,7 @@ paths:
         - cert
       summary: get cert list
       security:
-        - JWTAuth: [admin]
+        - JWTAuth: []
       operationId: certList
       parameters:
         - $ref: '#/components/parameters/page'
@@ -962,7 +962,7 @@ paths:
         - cert
       summary: get cert info
       security:
-        - JWTAuth: [admin]
+        - JWTAuth: []
       operationId: certInfoGet
       parameters:
         - $ref: '#/components/parameters/id'
