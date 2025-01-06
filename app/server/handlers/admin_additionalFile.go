@@ -200,7 +200,7 @@ func (a *App) AdditionalFileInfoGet(c echo.Context, id uint) error {
 		}
 	}
 
-	return c.JSON(http.StatusCreated, &admin.AdditionalFileInfoWithID{
+	return c.JSON(http.StatusOK, &admin.AdditionalFileInfoWithID{
 		Id:       &aFile.ID,
 		Name:     &aFile.Name,
 		Filename: &aFile.Filename,
@@ -252,7 +252,7 @@ func (a *App) AdditionalFileInfoUpdate(c echo.Context, id uint) error {
 		return a.er(c, http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusCreated, &admin.AdditionalFileInfoWithID{
+	return c.JSON(http.StatusOK, &admin.AdditionalFileInfoWithID{
 		Id:       &aFile.ID,
 		Name:     &aFile.Name,
 		Filename: &aFile.Filename,
@@ -305,7 +305,7 @@ func (a *App) AdditionalFileReplace(c echo.Context, id uint) error {
 		return a.er(c, http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusCreated, &admin.AdditionalFileInfoWithID{
+	return c.JSON(http.StatusOK, &admin.AdditionalFileInfoWithID{
 		Id:       &aFile.ID,
 		Name:     &aFile.Name,
 		Filename: &aFile.Filename,

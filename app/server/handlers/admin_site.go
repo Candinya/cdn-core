@@ -202,7 +202,7 @@ func (a *App) SiteInfoGet(c echo.Context, id uint) error {
 		}
 	}
 
-	return c.JSON(http.StatusCreated, &admin.SiteInfoWithID{
+	return c.JSON(http.StatusOK, &admin.SiteInfoWithID{
 		Id:             &site.ID,
 		Name:           &site.Name,
 		Origin:         &site.Origin,
@@ -261,7 +261,7 @@ func (a *App) SiteInfoUpdate(c echo.Context, id uint) error {
 		return a.er(c, http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusCreated, &admin.SiteInfoWithID{
+	return c.JSON(http.StatusOK, &admin.SiteInfoWithID{
 		Id:             &site.ID,
 		Name:           &site.Name,
 		Origin:         &site.Origin,

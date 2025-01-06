@@ -225,7 +225,7 @@ func (a *App) CertInfoGet(c echo.Context, id uint) error {
 		}
 	}
 
-	return c.JSON(http.StatusCreated, &admin.CertInfoWithID{
+	return c.JSON(http.StatusOK, &admin.CertInfoWithID{
 		Id:        &cert.ID,
 		Name:      &cert.Name,
 		Domains:   (*[]string)(&cert.Domains),
@@ -282,7 +282,7 @@ func (a *App) CertInfoUpdate(c echo.Context, id uint) error {
 		return a.er(c, http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusCreated, &admin.CertInfoWithID{
+	return c.JSON(http.StatusOK, &admin.CertInfoWithID{
 		Id:        &cert.ID,
 		Name:      &cert.Name,
 		Domains:   (*[]string)(&cert.Domains),
@@ -330,7 +330,7 @@ func (a *App) CertRenew(c echo.Context, id uint) error {
 	//	return a.er(c,http.StatusInternalServerError)
 	//}
 
-	return c.JSON(http.StatusCreated, &admin.CertInfoWithID{
+	return c.JSON(http.StatusOK, &admin.CertInfoWithID{
 		Id:        &cert.ID,
 		Name:      &cert.Name,
 		Domains:   (*[]string)(&cert.Domains),

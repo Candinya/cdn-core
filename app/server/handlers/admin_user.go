@@ -142,7 +142,7 @@ func (a *App) UserInfoGetSelf(c echo.Context) error {
 		}
 	}
 
-	return c.JSON(http.StatusCreated, &admin.UserInfoWithID{
+	return c.JSON(http.StatusOK, &admin.UserInfoWithID{
 		Id:       &user.ID,
 		Username: &user.Username,
 		IsAdmin:  &user.IsAdmin,
@@ -171,7 +171,7 @@ func (a *App) UserInfoGet(c echo.Context, id uint) error {
 		}
 	}
 
-	return c.JSON(http.StatusCreated, &admin.UserInfoWithID{
+	return c.JSON(http.StatusOK, &admin.UserInfoWithID{
 		Id:       &user.ID,
 		Username: &user.Username,
 		IsAdmin:  &user.IsAdmin,

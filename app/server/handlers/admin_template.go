@@ -181,7 +181,7 @@ func (a *App) TemplateInfoGet(c echo.Context, id uint) error {
 		}
 	}
 
-	return c.JSON(http.StatusCreated, &admin.TemplateInfoWithID{
+	return c.JSON(http.StatusOK, &admin.TemplateInfoWithID{
 		Id:          &template.ID,
 		Name:        &template.Name,
 		Description: &template.Description,
@@ -236,7 +236,7 @@ func (a *App) TemplateInfoUpdate(c echo.Context, id uint) error {
 		return a.er(c, http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusCreated, &admin.TemplateInfoWithID{
+	return c.JSON(http.StatusOK, &admin.TemplateInfoWithID{
 		Id:          &template.ID,
 		Name:        &template.Name,
 		Description: &template.Description,

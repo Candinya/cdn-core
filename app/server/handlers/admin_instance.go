@@ -192,7 +192,7 @@ func (a *App) InstanceInfoGet(c echo.Context, id uint) error {
 		}
 	}
 
-	return c.JSON(http.StatusCreated, &admin.InstanceInfoWithToken{
+	return c.JSON(http.StatusOK, &admin.InstanceInfoWithToken{
 		Id:                &instance.ID,
 		Name:              &instance.Name,
 		PreConfig:         &instance.PreConfig,
@@ -249,7 +249,7 @@ func (a *App) InstanceInfoUpdate(c echo.Context, id uint) error {
 		return a.er(c, http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusCreated, &admin.InstanceInfoWithID{
+	return c.JSON(http.StatusOK, &admin.InstanceInfoWithID{
 		Id:                &instance.ID,
 		Name:              &instance.Name,
 		PreConfig:         &instance.PreConfig,
@@ -291,7 +291,7 @@ func (a *App) InstanceRotateToken(c echo.Context, id uint) error {
 		return a.er(c, http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusCreated, &admin.InstanceInfoWithToken{
+	return c.JSON(http.StatusOK, &admin.InstanceInfoWithToken{
 		Id:                &instance.ID,
 		Name:              &instance.Name,
 		Token:             utils.P(instance.Token.String()),
