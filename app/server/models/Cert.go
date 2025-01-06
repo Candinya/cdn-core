@@ -14,7 +14,7 @@ type Cert struct {
 	Name      string          `gorm:"column:name"`                // 证书的名字，方便记忆
 	Domains   pq.StringArray  `gorm:"column:domains;type:text[]"` // 证书的域名，可以为多个
 	Provider  json.RawMessage `gorm:"column:provider;type:jsonb"` // 提供方信息（用 JSONB 存储方便扩展）， NULL 表示手动管理
-	ExpiresAt time.Time       `gorm:"column:expires_at;index"`    // 证书的过期时间，如果是自动管理则会在过期前 30 天尝试续期（这个值预期未来开放配置）
+	ExpiresAt time.Time       `gorm:"column:expires_at;index"`    // 证书的过期时间，如果是自动管理则会在过期前尝试自动续期（未来实现），也可以调用接口强制 renew
 
 	// 证书的本体信息
 	Certificate             string  `gorm:"column:certificate"`              // 签发的证书
