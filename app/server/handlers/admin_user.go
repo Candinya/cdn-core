@@ -114,6 +114,42 @@ func (a *App) UserList(c echo.Context, params admin.UserListParams) error {
 	})
 }
 
+func (a *App) UserInfoGetSelf(c echo.Context) error {
+	// 抓取 user 信息（认证）
+	//err, statusCode := a.authAdmin(c, false, nil)
+	//if err != nil {
+	//	a.l.Error("failed to get user", zap.Error(err))
+	//	return a.er(c, statusCode)
+	//}
+
+	// 这里比较特殊，因为是对于用户本身的操作，没有指定 id ，所以需要用接口提取，所以不能用一般的认证中间件（像上面那种）
+	jwtUser, err := a.getJwtUser(c)
+	if err != nil {
+		a.l.Error("failed to get jwt user", zap.Error(err))
+		return a.er(c, http.StatusUnauthorized)
+	}
+
+	rctx := c.Request().Context()
+
+	// 从数据库中获得指定的用户
+	var user models.User
+	if err := a.db.WithContext(rctx).First(&user, "id = ?", jwtUser.ID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return a.er(c, http.StatusNotFound)
+		} else {
+			a.l.Error("failed to get user", zap.Uint("id", jwtUser.ID), zap.Error(err))
+			return a.er(c, http.StatusInternalServerError)
+		}
+	}
+
+	return c.JSON(http.StatusCreated, &admin.UserInfoWithID{
+		Id:       &user.ID,
+		Username: &user.Username,
+		IsAdmin:  &user.IsAdmin,
+		Name:     &user.Name,
+	})
+}
+
 func (a *App) UserInfoGet(c echo.Context, id uint) error {
 	// 抓取 user 信息（认证）
 	err, statusCode := a.authAdmin(c, false, &id)

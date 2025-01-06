@@ -100,6 +100,22 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorMessage"
 
+  /user/info:
+    get:
+      tags:
+        - user
+      summary: get self info
+      security:
+        - JWTAuth: []
+      operationId: userInfoGetSelf
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfoWithID"
+
   /user/info/{id}:
     get:
       tags:
