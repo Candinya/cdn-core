@@ -28,6 +28,40 @@ func (a *App) instanceGetLastSeen(ctx context.Context, isManualMode bool, id uin
 	return nil
 }
 
+func (a *App) instanceMapFields(req *admin.InstanceInfoInput, instance *models.Instance) {
+	if req.Name != nil {
+		instance.Name = *req.Name
+	}
+	if req.PreConfig != nil {
+		instance.PreConfig = *req.PreConfig
+	}
+	if req.IsManualMode != nil {
+		instance.IsManualMode = *req.IsManualMode
+	}
+	if req.AdditionalFileIds != nil {
+		instance.AdditionalFileIDs = *req.AdditionalFileIds
+	}
+	if req.SiteIds != nil {
+		instance.SiteIDs = *req.SiteIds
+	}
+}
+
+func (a *App) instanceValidate(ctx context.Context, instance *models.Instance) (error, int) {
+	// 检查 additional file ids
+	if err, statusCode := validateIDs[models.AdditionalFile](a.db.WithContext(ctx), instance.AdditionalFileIDs); err != nil {
+		a.l.Error("failed to validate additional file", zap.Error(err))
+		return err, statusCode
+	}
+
+	// 检查 site ids
+	if err, statusCode := validateIDs[models.Site](a.db.WithContext(ctx), instance.SiteIDs); err != nil {
+		a.l.Error("failed to validate site", zap.Error(err))
+		return err, statusCode
+	}
+
+	return nil, http.StatusOK
+}
+
 func (a *App) InstanceCreate(c echo.Context) error {
 	// 抓取 user 信息（认证）
 	err, statusCode := a.authAdmin(c, true, nil)
@@ -49,20 +83,12 @@ func (a *App) InstanceCreate(c echo.Context) error {
 	instance := models.Instance{
 		Token: uuid.New(),
 	}
-	if req.Name != nil {
-		instance.Name = *req.Name
-	}
-	if req.PreConfig != nil {
-		instance.PreConfig = *req.PreConfig
-	}
-	if req.IsManualMode != nil {
-		instance.IsManualMode = *req.IsManualMode
-	}
-	if req.AdditionalFileIds != nil {
-		instance.AdditionalFileIDs = *req.AdditionalFileIds
-	}
-	if req.SiteIds != nil {
-		instance.SiteIDs = *req.SiteIds
+	a.instanceMapFields(&req, &instance)
+
+	// 验证
+	if err, statusCode = a.instanceValidate(rctx, &instance); err != nil {
+		a.l.Error("failed to validate instance", zap.Error(err))
+		return c.NoContent(statusCode)
 	}
 
 	if err := a.db.WithContext(rctx).Create(&instance).Error; err != nil {
@@ -193,7 +219,16 @@ func (a *App) InstanceInfoUpdate(c echo.Context, id uint) error {
 	}
 
 	// 更新信息
-	if err := a.db.WithContext(rctx).Model(&instance).Updates(&req).Error; err != nil {
+	a.instanceMapFields(&req, &instance)
+
+	// 验证
+	if err, statusCode = a.instanceValidate(rctx, &instance); err != nil {
+		a.l.Error("failed to validate instance", zap.Error(err))
+		return c.NoContent(statusCode)
+	}
+
+	// 更新
+	if err := a.db.WithContext(rctx).Updates(&instance).Error; err != nil {
 		a.l.Error("failed to update instance", zap.Any("instance", instance), zap.Error(err))
 		return c.NoContent(http.StatusInternalServerError)
 	}

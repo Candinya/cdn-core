@@ -508,14 +508,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  list:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/SiteInfoWithID"
-                  page_max:
-                    $ref: "#/components/schemas/page_max"
+                $ref: "#/components/schemas/SiteListResponse"
         403:
           description: No permission
           content:
@@ -652,14 +645,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  list:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/TemplateInfoWithID"
-                  page_max:
-                    $ref: "#/components/schemas/page_max"
+                $ref: "#/components/schemas/TemplateListResponse"
         403:
           description: No permission
           content:
@@ -798,14 +784,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  list:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/AdditionalFileInfoWithID"
-                  page_max:
-                    $ref: "#/components/schemas/page_max"
+                $ref: "#/components/schemas/AdditionalFileListResponse"
         403:
           description: No permission
           content:
@@ -942,14 +921,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  list:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/CertInfoWithID"
-                  page_max:
-                    $ref: "#/components/schemas/page_max"
+                $ref: "#/components/schemas/CertListResponse"
         403:
           description: No permission
           content:
@@ -1258,10 +1230,8 @@ components:
       properties:
         name:
           type: string
-        origins:
-          type: array
-          items:
-            type: string
+        origin:
+          type: string
         template_id:
           type: integer
           format: uint
@@ -1274,19 +1244,21 @@ components:
           type: integer
           format: uint
           description: Cert ID for this site
-    SiteInfoFull:
-      allOf:
-        - $ref: "#/components/schemas/SiteInfoInput"
-        - type: object
-          properties:
-            template:
-              $ref: "#/components/schemas/TemplateInfoWithID"
-            cert:
-              $ref: "#/components/schemas/CertInfoWithID"
     SiteInfoWithID:
       allOf:
-        - $ref: "#/components/schemas/SiteInfoFull"
+        - $ref: "#/components/schemas/SiteInfoInput"
         - $ref: "#/components/schemas/objectWithID"
+    SiteListResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/SiteInfoWithID"
+        limit:
+          type: integer
+        page_max:
+          $ref: "#/components/schemas/page_max"
     TemplateInfoInput:
       type: object
       properties:
@@ -1304,6 +1276,17 @@ components:
       allOf:
         - $ref: "#/components/schemas/TemplateInfoInput"
         - $ref: "#/components/schemas/objectWithID"
+    TemplateListResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemplateInfoWithID"
+        limit:
+          type: integer
+        page_max:
+          $ref: "#/components/schemas/page_max"
     AdditionalFileInfoFile:
       type: object
       properties:
@@ -1321,6 +1304,17 @@ components:
       allOf:
         - $ref: "#/components/schemas/AdditionalFileInfoInput"
         - $ref: "#/components/schemas/objectWithID"
+    AdditionalFileListResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdditionalFileInfoWithID"
+        limit:
+          type: integer
+        page_max:
+          $ref: "#/components/schemas/page_max"
     CertInfoInput:
       type: object
       properties:
@@ -1351,3 +1345,14 @@ components:
           type: string
         csr:
           type: string
+    CertListResponse:
+      type: object
+      properties:
+        list:
+          type: array
+          items:
+            $ref: "#/components/schemas/CertInfoWithID"
+        limit:
+          type: integer
+        page_max:
+          $ref: "#/components/schemas/page_max"
