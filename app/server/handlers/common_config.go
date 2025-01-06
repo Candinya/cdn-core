@@ -79,7 +79,7 @@ func (a *App) buildSiteConfigByModel(site *models.Site) (string, error) {
 		)
 
 		// 添加中间证书
-		if site.Cert.IntermediateCertificate != nil {
+		if site.Cert.IntermediateCertificate != "" {
 			tlsConfig += fmt.Sprintf(
 				" {\n        ca_root %s\n    }",
 				certPathPrefix+constants.CertPathIntermediateName,

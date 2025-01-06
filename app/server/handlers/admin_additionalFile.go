@@ -1,10 +1,14 @@
 package handlers
 
 import (
+	"caddy-delivery-network/app/server/constants"
 	"caddy-delivery-network/app/server/gen/oapi/admin"
 	"caddy-delivery-network/app/server/models"
+	"context"
 	"errors"
+	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"net/http"
@@ -17,6 +21,68 @@ func (a *App) additionalFileMapFields(req *admin.AdditionalFileInfoInput, aFile 
 	if req.Filename != nil {
 		aFile.Filename = *req.Filename
 	}
+}
+
+func (a *App) additionalFileUpdateClearCache(ctx context.Context, id uint, oldFilename string, newFilename string) error {
+	var instances []models.Instance
+	if err := a.db.WithContext(ctx).
+		Find(&instances, "? = ANY(additional_file_ids)", id).
+		Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			// 出问题了
+			a.l.Error("failed to get instances", zap.Error(err))
+			return fmt.Errorf("failed to get instances: %w", err)
+		}
+	}
+
+	// 清理心跳数据
+	for _, instance := range instances {
+		// 清理心跳数据缓存（这里包含了文件和对应的更新时间）
+		heartbeatCacheKey := fmt.Sprintf(constants.CacheKeyInstanceHeartbeat, instance.ID)
+		a.rdb.Del(ctx, heartbeatCacheKey)
+	}
+
+	// 如果文件名变化
+	if oldFilename != newFilename {
+		oldFilePath := constants.AFilePathPrefix + oldFilename
+		newFilePath := constants.AFilePathPrefix + newFilename
+
+		for _, instance := range instances {
+			// 清理文件列表缓存
+			filesCacheKey := fmt.Sprintf(constants.CacheKeyInstanceFiles, instance.ID)
+
+			if fileData, err := a.rdb.HGet(ctx, filesCacheKey, oldFilePath).Bytes(); err != nil {
+				if !errors.Is(err, redis.Nil) {
+					// 处理不了，直接清空整个 hash set
+					a.l.Error("failed to get cached file data", zap.Error(err))
+					a.rdb.Del(ctx, filesCacheKey)
+				}
+			} else {
+				// 把数据搬到新的路径，清理掉老的缓存
+				a.rdb.HSet(ctx, filesCacheKey, newFilePath, fileData)
+				a.rdb.HDel(ctx, filesCacheKey, oldFilePath)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (a *App) additionalFileCheckAbleToDelete(ctx context.Context, id uint) (bool, error) {
+	var instanceCount int64
+	if err := a.db.WithContext(ctx).
+		Model(&models.Instance{}).
+		Where("? = ANY(additional_file_ids)", id).
+		Count(&instanceCount).
+		Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			// 出问题了
+			a.l.Error("failed to get instances", zap.Error(err))
+			return false, fmt.Errorf("failed to get instances: %w", err)
+		}
+	}
+
+	return instanceCount == 0, nil
 }
 
 func (a *App) AdditionalFileCreate(c echo.Context) error {
@@ -169,6 +235,14 @@ func (a *App) AdditionalFileInfoUpdate(c echo.Context, id uint) error {
 		}
 	}
 
+	// 如果文件名称发生变更，需要清理旧缓存
+	if req.Filename != nil && *req.Filename != aFile.Filename {
+		if err := a.additionalFileUpdateClearCache(rctx, aFile.ID, aFile.Filename, *req.Filename); err != nil {
+			a.l.Error("failed to clear cache", zap.Error(err))
+			return c.NoContent(http.StatusInternalServerError)
+		}
+	}
+
 	// 更新
 	a.additionalFileMapFields(&req, &aFile)
 
@@ -211,6 +285,12 @@ func (a *App) AdditionalFileReplace(c echo.Context, id uint) error {
 			a.l.Error("failed to get file", zap.Uint("id", id), zap.Error(err))
 			return c.NoContent(http.StatusInternalServerError)
 		}
+	}
+
+	// 清理缓存（文件名没有变化，只需要清理心跳数据）
+	if err := a.additionalFileUpdateClearCache(rctx, aFile.ID, aFile.Filename, aFile.Filename); err != nil {
+		a.l.Error("failed to clear cache", zap.Error(err))
+		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	newContentBytes, err := req.Content.Bytes()
@@ -265,6 +345,14 @@ func (a *App) AdditionalFileDelete(c echo.Context, id uint) error {
 	}
 
 	rctx := c.Request().Context()
+
+	// 检查是否可以被删除
+	if ableToDelete, err := a.additionalFileCheckAbleToDelete(rctx, id); err != nil {
+		a.l.Error("failed to check able-to-delete", zap.Error(err))
+		return c.NoContent(http.StatusInternalServerError)
+	} else if !ableToDelete {
+		return c.NoContent(http.StatusPreconditionFailed)
+	}
 
 	// 删除
 	if err := a.db.WithContext(rctx).Delete(&models.AdditionalFile{}, id).Error; err != nil {

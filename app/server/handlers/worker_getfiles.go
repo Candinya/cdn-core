@@ -84,7 +84,7 @@ func (a *App) buildInstanceFileListByModel(ctx context.Context, instance *models
 			ID:      site.Cert.ID,
 		}
 
-		if site.Cert.IntermediateCertificate != nil {
+		if site.Cert.IntermediateCertificate != "" {
 			filesMap[certPathPrefix+constants.CertPathIntermediateName] = types.CacheInstanceFile{
 				Type:    types.CacheInstanceFileCert,
 				Subtype: types.CacheInstanceFileSubtypeCertIntermediate,
@@ -126,10 +126,10 @@ func (a *App) getFileByMeta(ctx context.Context, fileMeta *types.CacheInstanceFi
 			}
 			return decryptedData, nil
 		case types.CacheInstanceFileSubtypeCertIntermediate:
-			if cert.IntermediateCertificate == nil {
-				return nil, fmt.Errorf("intermediate certificate is nil")
+			if cert.IntermediateCertificate == "" {
+				return nil, fmt.Errorf("intermediate certificate is empty")
 			}
-			return []byte(*cert.IntermediateCertificate), nil
+			return []byte(cert.IntermediateCertificate), nil
 
 		default: // 这是个啥
 			return nil, fmt.Errorf("unsupported subtype %d", fileMeta.Subtype)

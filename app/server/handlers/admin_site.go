@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"caddy-delivery-network/app/server/constants"
 	"caddy-delivery-network/app/server/gen/oapi/admin"
 	"caddy-delivery-network/app/server/models"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -47,6 +49,47 @@ func (a *App) siteValidate(ctx context.Context, site *models.Site) (error, int) 
 	}
 
 	return nil, http.StatusOK
+}
+
+func (a *App) siteUpdateClearCache(ctx context.Context, id uint) error {
+	// 寻找部署了这个站点的实例
+	var instances []models.Instance
+	if err := a.db.WithContext(ctx).
+		Find(&instances, "? = ANY(site_ids)", id).
+		Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			// 出问题了
+			a.l.Error("failed to get instances", zap.Error(err))
+			return fmt.Errorf("failed to get instances: %w", err)
+		}
+	}
+	for _, instance := range instances {
+		// 清理配置数据缓存
+		a.rdb.Del(ctx, fmt.Sprintf(constants.CacheKeyInstanceConfig, instance.ID))
+
+		// 可能涉及到证书变更，所以同时也清理掉心跳数据缓存和文件缓存
+		a.rdb.Del(ctx, fmt.Sprintf(constants.CacheKeyInstanceHeartbeat, instance.ID))
+		a.rdb.Del(ctx, fmt.Sprintf(constants.CacheKeyInstanceFiles, instance.ID))
+	}
+
+	return nil
+}
+
+func (a *App) siteCheckAbleToDelete(ctx context.Context, id uint) (bool, error) {
+	var instanceCount int64
+	if err := a.db.WithContext(ctx).
+		Model(&models.Instance{}).
+		Where("? = ANY(site_ids)", id).
+		Count(&instanceCount).
+		Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			// 出问题了
+			a.l.Error("failed to get instances", zap.Error(err))
+			return false, fmt.Errorf("failed to get instances: %w", err)
+		}
+	}
+
+	return instanceCount == 0, nil
 }
 
 func (a *App) SiteCreate(c echo.Context) error {
@@ -197,6 +240,12 @@ func (a *App) SiteInfoUpdate(c echo.Context, id uint) error {
 		}
 	}
 
+	// 清理缓存
+	if err := a.siteUpdateClearCache(rctx, site.ID); err != nil {
+		a.l.Error("failed to clear cache", zap.Error(err))
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
 	// 更新
 	a.siteMapFields(&req, &site)
 
@@ -231,6 +280,14 @@ func (a *App) SiteDelete(c echo.Context, id uint) error {
 	}
 
 	rctx := c.Request().Context()
+
+	// 检查是否可以被删除
+	if ableToDelete, err := a.siteCheckAbleToDelete(rctx, id); err != nil {
+		a.l.Error("failed to check able-to-delete", zap.Error(err))
+		return c.NoContent(http.StatusInternalServerError)
+	} else if !ableToDelete {
+		return c.NoContent(http.StatusPreconditionFailed)
+	}
 
 	// 删除
 	if err := a.db.WithContext(rctx).Delete(&models.Site{}, id).Error; err != nil {

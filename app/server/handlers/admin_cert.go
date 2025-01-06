@@ -1,12 +1,16 @@
 package handlers
 
 import (
+	"caddy-delivery-network/app/server/constants"
 	"caddy-delivery-network/app/server/gen/oapi/admin"
 	"caddy-delivery-network/app/server/models"
+	"caddy-delivery-network/app/server/utils"
+	"context"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -41,7 +45,7 @@ func (a *App) certMapFields(req *admin.CertInfoInput, cert *models.Cert) {
 		}
 	}
 	if req.IntermediateCertificate != nil {
-		cert.IntermediateCertificate = req.IntermediateCertificate
+		cert.IntermediateCertificate = *req.IntermediateCertificate
 	}
 	if req.Csr != nil {
 		cert.CSR = *req.Csr
@@ -61,6 +65,61 @@ func (a *App) certCalcExpiresAt(certificate string) time.Time {
 	}
 
 	return cert.NotAfter
+}
+
+func (a *App) certUpdateClearCache(ctx context.Context, id uint, isCACertStatusChanged bool) error {
+	// 寻找使用了这张证书的站点
+	var sites []models.Site
+	if err := a.db.WithContext(ctx).Find(&sites, "cert_id = ?", id).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			a.l.Error("failed to get sites", zap.Error(err))
+			return fmt.Errorf("failed to get sites: %w", err)
+		}
+	}
+
+	// 再对于每个站点寻找部署了这个站点的实例
+	for _, site := range sites {
+		var instances []models.Instance
+		if err := a.db.WithContext(ctx).
+			Find(&instances, "? = ANY(site_ids)", site.ID).
+			Error; err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				// 出问题了
+				a.l.Error("failed to get instances", zap.Error(err))
+				return fmt.Errorf("failed to get instances: %w", err)
+			}
+		}
+		for _, instance := range instances {
+			// 清理心跳数据缓存（这里包含了文件对应的更新时间）
+			heartbeatCacheKey := fmt.Sprintf(constants.CacheKeyInstanceHeartbeat, instance.ID)
+			a.rdb.Del(ctx, heartbeatCacheKey)
+
+			// 如果出现中间证书状态的更新，需要清理文件列表缓存
+			if isCACertStatusChanged {
+				filesCacheKey := fmt.Sprintf(constants.CacheKeyInstanceFiles, instance.ID)
+				a.rdb.Del(ctx, filesCacheKey)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (a *App) certCheckAbleToDelete(ctx context.Context, id uint) (bool, error) {
+	var siteCount int64
+	if err := a.db.WithContext(ctx).
+		Model(&models.Site{}).
+		Where("cert_id = ?", id).
+		Count(&siteCount).
+		Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			// 出问题了
+			a.l.Error("failed to get sites", zap.Error(err))
+			return false, fmt.Errorf("failed to get sites: %w", err)
+		}
+	}
+
+	return siteCount == 0, nil
 }
 
 func (a *App) CertCreate(c echo.Context) error {
@@ -89,12 +148,11 @@ func (a *App) CertCreate(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	certExpiresAtTs := cert.ExpiresAt.Unix()
 	return c.JSON(http.StatusCreated, &admin.CertInfoWithID{
 		Id:        &cert.ID,
 		Name:      &cert.Name,
 		Domains:   (*[]string)(&cert.Domains),
-		ExpiresAt: &certExpiresAtTs,
+		ExpiresAt: utils.P(cert.ExpiresAt.Unix()),
 		// 其他字段不开放
 	})
 }
@@ -167,12 +225,11 @@ func (a *App) CertInfoGet(c echo.Context, id uint) error {
 		}
 	}
 
-	certExpiresAtTs := cert.ExpiresAt.Unix()
 	return c.JSON(http.StatusCreated, &admin.CertInfoWithID{
 		Id:        &cert.ID,
 		Name:      &cert.Name,
 		Domains:   (*[]string)(&cert.Domains),
-		ExpiresAt: &certExpiresAtTs,
+		ExpiresAt: utils.P(cert.ExpiresAt.Unix()),
 	})
 }
 
@@ -204,6 +261,18 @@ func (a *App) CertInfoUpdate(c echo.Context, id uint) error {
 		}
 	}
 
+	// 如果证书部分发生变更，需要清理旧缓存（已知私钥会随着证书变化，所以没必要单独验证）
+	if req.Certificate != nil && *req.Certificate != cert.Certificate ||
+		req.IntermediateCertificate != nil && *req.IntermediateCertificate != cert.IntermediateCertificate {
+		if err := a.certUpdateClearCache(rctx, cert.ID,
+			(req.IntermediateCertificate == nil || *req.IntermediateCertificate == "") != // 新 CA 证书为空
+				(cert.IntermediateCertificate == ""), // 旧 CA 证书为空
+		); err != nil {
+			a.l.Error("failed to clear cache", zap.Error(err))
+			return c.NoContent(http.StatusInternalServerError)
+		}
+	}
+
 	// 更新
 	a.certMapFields(&req, &cert)
 
@@ -213,12 +282,11 @@ func (a *App) CertInfoUpdate(c echo.Context, id uint) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	certExpiresAtTs := cert.ExpiresAt.Unix()
 	return c.JSON(http.StatusCreated, &admin.CertInfoWithID{
 		Id:        &cert.ID,
 		Name:      &cert.Name,
 		Domains:   (*[]string)(&cert.Domains),
-		ExpiresAt: &certExpiresAtTs,
+		ExpiresAt: utils.P(cert.ExpiresAt.Unix()),
 		// 其他字段不开放
 	})
 }
@@ -250,18 +318,23 @@ func (a *App) CertRenew(c echo.Context, id uint) error {
 
 	// todo: 调用 provider 处理
 
+	// 清理缓存
+	if err := a.certUpdateClearCache(rctx, cert.ID, false); err != nil {
+		a.l.Error("failed to clear cache", zap.Error(err))
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
 	// 更新信息
 	//if err := a.db.WithContext(rctx).Model(&cert).Update("content", newContentBytes).Error; err != nil {
 	//	a.l.Error("failed to update cert", zap.Any("cert", cert), zap.Error(err))
 	//	return c.NoContent(http.StatusInternalServerError)
 	//}
 
-	certExpiresAtTs := cert.ExpiresAt.Unix()
 	return c.JSON(http.StatusCreated, &admin.CertInfoWithID{
 		Id:        &cert.ID,
 		Name:      &cert.Name,
 		Domains:   (*[]string)(&cert.Domains),
-		ExpiresAt: &certExpiresAtTs,
+		ExpiresAt: utils.P(cert.ExpiresAt.Unix()),
 		// 其他字段不开放
 	})
 }
@@ -275,6 +348,14 @@ func (a *App) CertDelete(c echo.Context, id uint) error {
 	}
 
 	rctx := c.Request().Context()
+
+	// 检查是否可以被删除
+	if ableToDelete, err := a.certCheckAbleToDelete(rctx, id); err != nil {
+		a.l.Error("failed to check able-to-delete", zap.Error(err))
+		return c.NoContent(http.StatusInternalServerError)
+	} else if !ableToDelete {
+		return c.NoContent(http.StatusPreconditionFailed)
+	}
 
 	// 删除
 	if err := a.db.WithContext(rctx).Delete(&models.Cert{}, id).Error; err != nil {

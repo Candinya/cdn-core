@@ -4,6 +4,7 @@ import (
 	"caddy-delivery-network/app/server/constants"
 	"caddy-delivery-network/app/server/gen/oapi/admin"
 	"caddy-delivery-network/app/server/models"
+	"caddy-delivery-network/app/server/utils"
 	"context"
 	"errors"
 	"fmt"
@@ -62,6 +63,22 @@ func (a *App) instanceValidate(ctx context.Context, instance *models.Instance) (
 	return nil, http.StatusOK
 }
 
+func (a *App) instanceUpdateClearDataCache(ctx context.Context, id uint) {
+	// 清理配置项
+	a.rdb.Del(ctx, fmt.Sprintf(constants.CacheKeyInstanceConfig, id))
+
+	// 清理心跳数据
+	a.rdb.Del(ctx, fmt.Sprintf(constants.CacheKeyInstanceHeartbeat, id))
+
+	// 清理文件列表缓存
+	a.rdb.Del(ctx, fmt.Sprintf(constants.CacheKeyInstanceFiles, id))
+}
+
+func (a *App) instanceUpdateClearAuthCache(ctx context.Context, id uint) {
+	// 清理信息（包含认证用的 token ）
+	a.rdb.Del(ctx, fmt.Sprintf(constants.CacheKeyInstanceInfo, id))
+}
+
 func (a *App) InstanceCreate(c echo.Context) error {
 	// 抓取 user 信息（认证）
 	err, statusCode := a.authAdmin(c, true, nil)
@@ -96,11 +113,10 @@ func (a *App) InstanceCreate(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	tokenStr := instance.Token.String()
 	return c.JSON(http.StatusCreated, &admin.InstanceInfoWithToken{
 		Id:                &instance.ID,
 		Name:              &instance.Name,
-		Token:             &tokenStr,
+		Token:             utils.P(instance.Token.String()),
 		PreConfig:         &instance.PreConfig,
 		IsManualMode:      &instance.IsManualMode,
 		AdditionalFileIds: &instance.AdditionalFileIDs,
@@ -215,6 +231,9 @@ func (a *App) InstanceInfoUpdate(c echo.Context, id uint) error {
 		}
 	}
 
+	// 清理缓存
+	a.instanceUpdateClearDataCache(rctx, instance.ID)
+
 	// 更新信息
 	a.instanceMapFields(&req, &instance)
 
@@ -262,6 +281,9 @@ func (a *App) InstanceRotateToken(c echo.Context, id uint) error {
 		}
 	}
 
+	// 清理缓存
+	a.instanceUpdateClearAuthCache(rctx, instance.ID)
+
 	// 更新信息
 	newToken := uuid.New()
 	if err := a.db.WithContext(rctx).Model(&instance).Update("token", newToken).Error; err != nil {
@@ -269,12 +291,10 @@ func (a *App) InstanceRotateToken(c echo.Context, id uint) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	tokenStr := instance.Token.String()
-
 	return c.JSON(http.StatusCreated, &admin.InstanceInfoWithToken{
 		Id:                &instance.ID,
 		Name:              &instance.Name,
-		Token:             &tokenStr,
+		Token:             utils.P(instance.Token.String()),
 		PreConfig:         &instance.PreConfig,
 		IsManualMode:      &instance.IsManualMode,
 		AdditionalFileIds: &instance.AdditionalFileIDs,
@@ -298,6 +318,10 @@ func (a *App) InstanceDelete(c echo.Context, id uint) error {
 		a.l.Error("failed to delete instance", zap.Uint("id", id), zap.Error(err))
 		return c.NoContent(http.StatusInternalServerError)
 	}
+
+	// 清理缓存
+	a.instanceUpdateClearDataCache(rctx, id)
+	a.instanceUpdateClearAuthCache(rctx, id)
 
 	return c.NoContent(http.StatusOK)
 }

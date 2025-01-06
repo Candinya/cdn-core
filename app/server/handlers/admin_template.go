@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"caddy-delivery-network/app/server/constants"
 	"caddy-delivery-network/app/server/gen/oapi/admin"
 	"caddy-delivery-network/app/server/models"
+	"context"
 	"errors"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -24,6 +27,55 @@ func (a *App) templateMapFields(req *admin.TemplateInfoInput, template *models.T
 	if req.Variables != nil {
 		template.Variables = *req.Variables
 	}
+}
+
+func (a *App) templateUpdateClearCache(ctx context.Context, id uint) error {
+	// 寻找使用了这个模板的站点
+	var sites []models.Site
+	if err := a.db.WithContext(ctx).Find(&sites, "template_id = ?", id).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			a.l.Error("failed to get sites", zap.Error(err))
+			return fmt.Errorf("failed to get sites: %w", err)
+		}
+	}
+
+	// 再对于每个站点寻找部署了这个站点的实例
+	for _, site := range sites {
+		var instances []models.Instance
+		if err := a.db.WithContext(ctx).
+			Find(&instances, "? = ANY(site_ids)", site.ID).
+			Error; err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				// 出问题了
+				a.l.Error("failed to get instances", zap.Error(err))
+				return fmt.Errorf("failed to get instances: %w", err)
+			}
+		}
+		for _, instance := range instances {
+			// 同 ID 模板更新不会涉及到文件变更，仅需清理配置和心跳数据缓存（心跳数据里包含了配置文件的更新时间）
+			a.rdb.Del(ctx, fmt.Sprintf(constants.CacheKeyInstanceConfig, instance.ID))
+			a.rdb.Del(ctx, fmt.Sprintf(constants.CacheKeyInstanceHeartbeat, instance.ID))
+		}
+	}
+
+	return nil
+}
+
+func (a *App) templateCheckAbleToDelete(ctx context.Context, id uint) (bool, error) {
+	var siteCount int64
+	if err := a.db.WithContext(ctx).
+		Model(&models.Site{}).
+		Where("template_id = ?", id).
+		Count(&siteCount).
+		Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			// 出问题了
+			a.l.Error("failed to get sites", zap.Error(err))
+			return false, fmt.Errorf("failed to get sites: %w", err)
+		}
+	}
+
+	return siteCount == 0, nil
 }
 
 func (a *App) TemplateCreate(c echo.Context) error {
@@ -166,6 +218,15 @@ func (a *App) TemplateInfoUpdate(c echo.Context, id uint) error {
 		}
 	}
 
+	// 如果模板发生变更，需要清理旧缓存（已知私钥会随着证书变化，所以没必要单独验证）
+	if req.Content != nil && *req.Content != template.Content ||
+		req.Variables != nil {
+		if err := a.templateUpdateClearCache(rctx, template.ID); err != nil {
+			a.l.Error("failed to clear cache", zap.Error(err))
+			return c.NoContent(http.StatusInternalServerError)
+		}
+	}
+
 	// 更新
 	a.templateMapFields(&req, &template)
 
@@ -193,6 +254,14 @@ func (a *App) TemplateDelete(c echo.Context, id uint) error {
 	}
 
 	rctx := c.Request().Context()
+
+	// 检查是否可以被删除
+	if ableToDelete, err := a.templateCheckAbleToDelete(rctx, id); err != nil {
+		a.l.Error("failed to check able-to-delete", zap.Error(err))
+		return c.NoContent(http.StatusInternalServerError)
+	} else if !ableToDelete {
+		return c.NoContent(http.StatusPreconditionFailed)
+	}
 
 	// 删除
 	if err := a.db.WithContext(rctx).Delete(&models.Template{}, id).Error; err != nil {

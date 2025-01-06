@@ -17,8 +17,8 @@ type Cert struct {
 	ExpiresAt time.Time       `gorm:"column:expires_at;index"`    // 证书的过期时间，如果是自动管理则会在过期前尝试自动续期（未来实现），也可以调用接口强制 renew
 
 	// 证书的本体信息
-	Certificate             string  `gorm:"column:certificate"`              // 签发的证书
-	PrivateKey              []byte  `gorm:"column:private_key;type:bytea"`   // 私钥，使用来自环境变量的 secret key 加密 (AES-GCM)
-	IntermediateCertificate *string `gorm:"column:intermediate_certificate"` // 中间证书
-	CSR                     string  `gorm:"column:csr"`                      // 签发请求信息
+	Certificate             string `gorm:"column:certificate"`              // 签发的证书
+	PrivateKey              []byte `gorm:"column:private_key;type:bytea"`   // 私钥，使用来自环境变量的 secret key 加密 (AES-GCM)
+	IntermediateCertificate string `gorm:"column:intermediate_certificate"` // 中间证书
+	CSR                     string `gorm:"column:csr"`                      // 签发请求信息
 }

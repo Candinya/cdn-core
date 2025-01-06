@@ -63,7 +63,7 @@ func (a *App) buildHeartbeatData(ctx context.Context, w *models.Instance) ([]byt
 				UpdatedAt: site.Cert.UpdatedAt.Unix(),
 			})
 			// 中间证书
-			if site.Cert.IntermediateCertificate != nil {
+			if site.Cert.IntermediateCertificate != "" {
 				res.FilesUpdatedAt = append(res.FilesUpdatedAt, worker.FileUpdateRecord{
 					Path:      certPathPrefix + constants.CertPathIntermediateName,
 					UpdatedAt: site.Cert.UpdatedAt.Unix(),
@@ -109,7 +109,8 @@ func (a *App) Heartbeat(c echo.Context, id uint) error {
 
 	// 检查是否有缓存结果
 	var resBytes []byte
-	if data, err := a.rdb.Get(rctx, fmt.Sprintf(constants.CacheKeyInstanceHeartbeat, w.ID)).Bytes(); err != nil {
+	cacheKey := fmt.Sprintf(constants.CacheKeyInstanceHeartbeat, w.ID)
+	if data, err := a.rdb.Get(rctx, cacheKey).Bytes(); err != nil {
 		if !errors.Is(err, redis.Nil) {
 			a.l.Error("heartbeat check cache", zap.Error(err))
 		}
@@ -122,7 +123,7 @@ func (a *App) Heartbeat(c echo.Context, id uint) error {
 		}
 
 		// 加入缓存
-		a.rdb.Set(rctx, fmt.Sprintf(constants.CacheKeyInstanceHeartbeat, w.ID), resBytes, constants.CacheExpireInstanceHeartbeat)
+		a.rdb.Set(rctx, cacheKey, resBytes, constants.CacheExpireInstanceHeartbeat)
 	} else {
 		resBytes = data
 	}
