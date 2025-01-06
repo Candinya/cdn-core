@@ -60,9 +60,6 @@ type GetFilesParams struct {
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// health check
-	// (GET /health)
-	HealthCheck(ctx echo.Context) error
 	// get config
 	// (GET /{id}/config)
 	GetConfig(ctx echo.Context, id Id) error
@@ -77,15 +74,6 @@ type ServerInterface interface {
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
-}
-
-// HealthCheck converts echo context to params.
-func (w *ServerInterfaceWrapper) HealthCheck(ctx echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.HealthCheck(ctx)
-	return err
 }
 
 // GetConfig converts echo context to params.
@@ -190,7 +178,6 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
-	router.GET(baseURL+"/health", wrapper.HealthCheck)
 	router.GET(baseURL+"/:id/config", wrapper.GetConfig)
 	router.GET(baseURL+"/:id/file", wrapper.GetFiles)
 	router.GET(baseURL+"/:id/heartbeat", wrapper.Heartbeat)
@@ -200,20 +187,19 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9RWX4/jNBD/KtbAA0jppsDCQ95WewL6clrdgThpVZ1cZ5r4mthmPOlRVfnuyE6atJt0",
-	"gdUiwUv/xZ75/fO4R1C2dtagYQ/ZEZwkWSMjxW86D685ekXasbYGMli9gQR0+OQkl5CAkTVCFtYm4FWJ",
-	"tQybtpZqyZBBow1DAnxwcZVhLJCgbdvT6tjpR13hry6XjO9QWYp9HVmHxBp7ZFyG976QZ9KmgDaBJm7L",
-	"P4ZuR/iScAsZfJGOvNK+T8q6Rs+ydhC6E/7eaMIcsscTlbNS6wGy3XxCxaHTT8j31mx18a6HdAFQWcNo",
-	"eKrYvczzw1ZXOMrwuujPaiQDjDkCP6Mk3qDkawS2uvj4IkQJBIL+yWbNWPu/qjKxvh2QSyJ5mNCd4pzp",
-	"Pkd/xDvxqDH6D+FRWRNiPIRXG/7hdi69CXhUDWk+vA80OgF/sTs0d02X00gvbNqgJKSxSMnsuvxrs7Ux",
-	"0porPAVFvMFK75EO4i3yZ0s7sRC/WdohibuHFSSwR/Id6OXN8mYZiFmHRjoNGXx3s7z5BpIY6IgpLVFW",
-	"HaICoynBchlor3LIQiQqLu9LVDsIMntnje/ofLtcToV63yiF3oeu3889XxlGMrISHmmPJJDI9oI1dS3p",
-	"EBSIPYXqm7IsfPC1R7oOi9Ojztu0c/oq9uE8RsLj4HqcD9y4JNU5tOt5umfHWDpXaRX7pZ98oHc8m3DP",
-	"ZfpiUkSvr6p4u7ydqvjWCt+oUmjjWRqF4qscK2TMhSXBIWai1r6WrMqvX2JFn90o1VlqH9dBldGoAlmo",
-	"k8Inmz7HMJ7bFGfbMyaFE+5f5FHylNOD5FLYrWBJAVw/VeN1VKLM4znrL6QPi9B38dCN9tG3JyP4H+bA",
-	"KkZeeCaU9WUehqGx0SbINxn212OQ9OBj/w+Lbhrmi7uZy6R7JoZRNhXj7yX0/DZpXyOG4aeI4N+No9em",
-	"qPDE9Xomy9NV99zk61f816bHxTX9/50egwUC99j9CZzYFcuF+p3wDVWQQSqdTvs17br9MwAA///IjCbg",
-	"pAoAAA==",
+	"H4sIAAAAAAAC/9RWUW/DNBD+K9bBA0hpU2DwkLdpE7CXadpATJqqyXWujbfENudLR1XlvyM7adI27YBp",
+	"SPDSNq199933ff7cLShbOWvQsIdsC06SrJCR4pPOw2uOXpF2rK2BDG6uIQEdPjnJBSRgZIWQhbUJeFVg",
+	"JcOmpaVKMmRQa8OQAG9cXGUYV0jQNM1udez0oy7xV5dLxntUlmJfR9YhscYOGRfhvSvkmbRZQZNAHbfl",
+	"z6HbFr4kXEIGX6TDXGnXJ2VdoWdZOQjdCX+vNWEO2dNulL1S8x6yXbyg4tDpJ+Qra5Z6dd9BOgCorGE0",
+	"PGbsSub5ZqlLHGj4XPR7NZIexqkBfkZJvEDJ5wZY6tXzhxAlEAb0R5s1Y+X/qspI+qZHLonkZjTuGOeJ",
+	"7qfGH/CONKqN/kN4VNYEG/fm1YZ/uDjl3gQ8qpo0bx7CGC2Bv9hXNJd169M4Xti0QElIQ5GC2bX+12Zp",
+	"o6U1l7gzirjGUq+RNuIW+c3Sq5iI3yy9IonLuxtIYI3kW9Cz6Ww6C4NZh0Y6DRl8N51Nv4EkGjpiSrc6",
+	"b9KWsvC8wqhM0F2G2W9yyAZjx51DAjydVm5YkuocmnmQxztrfEvDt7PZ0XmQzpVaxX7piw/Yt3tR8Z45",
+	"Do5cJO1Qt4daKfQ+kHAxuxjremuFr1UhtPEsjULxVY4lMubCkuCgl6i0rySr4utQ5PsW+1HkGUYyshQe",
+	"aY0kkMgemiBStSf/0zyw4uuqkrSBLLAu1I5hlqvALbxFVWEeCrUyxZB4R6RwVPyHNEqOZ7qTXAi7FCwp",
+	"gOviKeZ6gTKPhu2S/XES+k7u2owcdDvKsn/oA6sYeeKZUFaHfuhP30KbQN8oNc/bIOnAx/6PkzZW8snl",
+	"iVRufxN9JozJ+HsO3Y/l5jNsGL6KCP5dO3ptViXuZj3vyWJ3Z5w1Zn+r/OfS4+C++/+mRy+BwDW2/6ZG",
+	"csVyoX5LfE0lZJBKp9NuTTNv/gwAAP//YvWz2O0JAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

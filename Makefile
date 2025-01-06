@@ -10,4 +10,4 @@ genoapi:
 	go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen -package admin  -generate=types,server,spec,skip-prune -o app/server/gen/oapi/admin/oapi.go  spec/admin-api.yml
 	go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen -package worker -generate=types,server,spec,skip-prune -o app/server/gen/oapi/worker/oapi.go spec/worker-api.yml
 	go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen -package worker -generate=types,client,skip-prune      -o app/worker/gen/oapi/worker/oapi.go spec/worker-api.yml
-	#go mod tidy
+	go mod tidy

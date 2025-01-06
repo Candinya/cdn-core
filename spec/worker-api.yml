@@ -5,18 +5,6 @@ info:
 servers:
   - url: /api/worker
 paths:
-  /health:
-    get:
-      tags:
-        - health
-      summary: health check
-      operationId: healthCheck
-      responses:
-        200:
-          description: Success
-        500:
-          description: Internal server error
-
   /{id}/heartbeat:
     get:
       tags:
