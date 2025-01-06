@@ -7,8 +7,10 @@ import (
 	"strings"
 )
 
-func Config() (cfg *config.Config, err error) {
+func Config() (*config.Config, error) {
 	// 手动配置映射，如果这里有什么自动映射工具就好了， viper 好像处理这种基于环境变量的配置也不是很方便
+	var cfg config.Config
+
 	{
 		mode, exist := os.LookupEnv("MODE")
 		cfg.System.IsProd = exist && strings.HasPrefix(strings.ToLower(mode), "p")
@@ -44,5 +46,5 @@ func Config() (cfg *config.Config, err error) {
 		cfg.Security.SignatureSecretKey = sigsk
 	}
 
-	return cfg, nil
+	return &cfg, nil
 }
