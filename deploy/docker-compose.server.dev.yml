@@ -1,0 +1,18 @@
+name: "cdn-server-dev"
+services:
+  db:
+    restart: unless-stopped
+    image: postgres:17-alpine
+    ports:
+      - 127.0.0.1:5432:5432
+    environment:
+      POSTGRES_USER: cdn
+      POSTGRES_PASSWORD: caddy-delivery-network
+      POSTGRES_DB: cdn
+      POSTGRES_INITDB_ARGS: "--encoding='UTF8' --lc-collate='C' --lc-ctype='C'"
+
+  redis:
+    restart: unless-stopped
+    image: redis:alpine
+    ports:
+      - 127.0.0.1:6379:6379
