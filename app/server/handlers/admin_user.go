@@ -22,7 +22,7 @@ func (a *App) UserCreate(c echo.Context) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -31,14 +31,14 @@ func (a *App) UserCreate(c echo.Context) error {
 	var req admin.UserCreateJSONRequestBody
 	if err = c.Bind(&req); err != nil {
 		a.l.Error("failed to bind request", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 处理密码
 	passwordHash, err := argon2id.CreateHash(req.Password, argon2id.DefaultParams)
 	if err != nil {
 		a.l.Error("failed to hash password", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	// 创建用户
@@ -55,7 +55,7 @@ func (a *App) UserCreate(c echo.Context) error {
 
 	if err := a.db.WithContext(rctx).Create(&user).Error; err != nil {
 		a.l.Error("failed to create user", zap.Any("user", user), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusCreated, &admin.UserInfoWithID{
@@ -71,7 +71,7 @@ func (a *App) UserList(c echo.Context, params admin.UserListParams) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -85,11 +85,11 @@ func (a *App) UserList(c echo.Context, params admin.UserListParams) error {
 
 	if err := a.db.WithContext(rctx).Model(&models.User{}).Limit(limit).Offset(page * limit).Find(&users).Error; err != nil {
 		a.l.Error("failed to get user list", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 	if err := a.db.WithContext(rctx).Model(&models.User{}).Count(&usersCount).Error; err != nil {
 		a.l.Error("failed to count user", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	pageMax := usersCount / int64(limit)
@@ -119,7 +119,7 @@ func (a *App) UserInfoGet(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, false, &id)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -128,10 +128,10 @@ func (a *App) UserInfoGet(c echo.Context, id uint) error {
 	var user models.User
 	if err := a.db.WithContext(rctx).First(&user, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get user", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
@@ -148,7 +148,7 @@ func (a *App) UserInfoUpdate(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, false, &id)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -157,17 +157,17 @@ func (a *App) UserInfoUpdate(c echo.Context, id uint) error {
 	var req admin.UserInfoUpdateJSONRequestBody
 	if err = c.Bind(&req); err != nil {
 		a.l.Error("failed to bind request", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 从数据库中获得指定的用户
 	var user models.User
 	if err := a.db.WithContext(rctx).First(&user, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get user", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
@@ -176,7 +176,7 @@ func (a *App) UserInfoUpdate(c echo.Context, id uint) error {
 	// 更新用户信息
 	if err := a.db.WithContext(rctx).Updates(&user).Error; err != nil {
 		a.l.Error("failed to update user", zap.Any("user", user), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusOK, &admin.UserInfoWithID{
@@ -192,7 +192,7 @@ func (a *App) UserUsernameUpdate(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, false, &id)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -201,27 +201,27 @@ func (a *App) UserUsernameUpdate(c echo.Context, id uint) error {
 	var req admin.UserUsernameUpdateJSONRequestBody
 	if err = c.Bind(&req); err != nil {
 		a.l.Error("failed to bind request", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 	if req.Username == nil {
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 从数据库中获得指定的用户
 	var user models.User
 	if err := a.db.WithContext(rctx).First(&user, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get user", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
 	// 更新用户信息
 	if err := a.db.WithContext(rctx).Model(&user).Update("username", *req.Username).Error; err != nil {
 		a.l.Error("failed to update user", zap.Any("user", user), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusOK, &admin.UserInfoWithID{
@@ -237,7 +237,7 @@ func (a *App) UserPasswordUpdate(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, false, &id)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -246,33 +246,33 @@ func (a *App) UserPasswordUpdate(c echo.Context, id uint) error {
 	var req admin.UserPasswordUpdateJSONRequestBody
 	if err = c.Bind(&req); err != nil {
 		a.l.Error("failed to bind request", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 	if req.Password == nil {
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 从数据库中获得指定的用户
 	var user models.User
 	if err := a.db.WithContext(rctx).First(&user, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get user", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
 	newPasswordHash, err := argon2id.CreateHash(*req.Password, argon2id.DefaultParams)
 	if err != nil {
 		a.l.Error("failed to hash password", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	// 更新用户信息
 	if err := a.db.WithContext(rctx).Model(&user).Update("password", newPasswordHash).Error; err != nil {
 		a.l.Error("failed to update user", zap.Any("user", user), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.NoContent(http.StatusOK)
@@ -283,7 +283,7 @@ func (a *App) UserDelete(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, false, &id)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -291,7 +291,7 @@ func (a *App) UserDelete(c echo.Context, id uint) error {
 	// 删除用户
 	if err := a.db.WithContext(rctx).Delete(&models.User{}, id).Error; err != nil {
 		a.l.Error("failed to delete user", zap.Uint("id", id), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.NoContent(http.StatusOK)
@@ -302,7 +302,7 @@ func (a *App) UserRoleUpdate(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -311,27 +311,27 @@ func (a *App) UserRoleUpdate(c echo.Context, id uint) error {
 	var req admin.UserRoleUpdateJSONRequestBody
 	if err = c.Bind(&req); err != nil {
 		a.l.Error("failed to bind request", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 	if req.IsAdmin == nil {
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 从数据库中获得指定的用户
 	var user models.User
 	if err := a.db.WithContext(rctx).First(&user, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get user", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
 	// 更新用户信息
 	if err := a.db.WithContext(rctx).Model(&user).Update("is_admin", *req.IsAdmin).Error; err != nil {
 		a.l.Error("failed to update user", zap.Any("user", user), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusOK, &admin.UserInfoWithID{

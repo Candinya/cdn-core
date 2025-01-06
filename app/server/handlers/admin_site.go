@@ -97,7 +97,7 @@ func (a *App) SiteCreate(c echo.Context) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to auth", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -106,7 +106,7 @@ func (a *App) SiteCreate(c echo.Context) error {
 	var req admin.SiteCreateJSONRequestBody
 	if err = c.Bind(&req); err != nil {
 		a.l.Error("failed to bind request", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 创建
@@ -116,12 +116,12 @@ func (a *App) SiteCreate(c echo.Context) error {
 	// 验证
 	if err, statusCode = a.siteValidate(rctx, &site); err != nil {
 		a.l.Error("failed to validate site", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	if err := a.db.WithContext(rctx).Create(&site).Error; err != nil {
 		a.l.Error("failed to create site", zap.Any("site", site), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusCreated, &admin.SiteInfoWithID{
@@ -139,7 +139,7 @@ func (a *App) SiteList(c echo.Context, params admin.SiteListParams) error {
 	err, statusCode := a.authAdmin(c, false, nil)
 	if err != nil {
 		a.l.Error("failed to auth", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -153,11 +153,11 @@ func (a *App) SiteList(c echo.Context, params admin.SiteListParams) error {
 
 	if err := a.db.WithContext(rctx).Model(&models.Site{}).Limit(limit).Offset(page * limit).Find(&sites).Error; err != nil {
 		a.l.Error("failed to get site list", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 	if err := a.db.WithContext(rctx).Model(&models.Site{}).Count(&sitesCount).Error; err != nil {
 		a.l.Error("failed to count site", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	pageMax := sitesCount / int64(limit)
@@ -186,7 +186,7 @@ func (a *App) SiteInfoGet(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, false, nil)
 	if err != nil {
 		a.l.Error("failed to auth", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -195,10 +195,10 @@ func (a *App) SiteInfoGet(c echo.Context, id uint) error {
 	var site models.Site
 	if err := a.db.WithContext(rctx).First(&site, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get site", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
@@ -217,7 +217,7 @@ func (a *App) SiteInfoUpdate(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -226,24 +226,24 @@ func (a *App) SiteInfoUpdate(c echo.Context, id uint) error {
 	var req admin.SiteInfoUpdateJSONRequestBody
 	if err = c.Bind(&req); err != nil {
 		a.l.Error("failed to bind request", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 从数据库中获得
 	var site models.Site
 	if err := a.db.WithContext(rctx).First(&site, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get site", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
 	// 清理缓存
 	if err := a.siteUpdateClearCache(rctx, site.ID); err != nil {
 		a.l.Error("failed to clear cache", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	// 更新
@@ -252,13 +252,13 @@ func (a *App) SiteInfoUpdate(c echo.Context, id uint) error {
 	// 验证
 	if err, statusCode = a.siteValidate(rctx, &site); err != nil {
 		a.l.Error("failed to validate site", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	// 更新信息
 	if err := a.db.WithContext(rctx).Updates(&site).Error; err != nil {
 		a.l.Error("failed to update site", zap.Any("site", site), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusCreated, &admin.SiteInfoWithID{
@@ -276,7 +276,7 @@ func (a *App) SiteDelete(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -284,15 +284,15 @@ func (a *App) SiteDelete(c echo.Context, id uint) error {
 	// 检查是否可以被删除
 	if ableToDelete, err := a.siteCheckAbleToDelete(rctx, id); err != nil {
 		a.l.Error("failed to check able-to-delete", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	} else if !ableToDelete {
-		return c.NoContent(http.StatusPreconditionFailed)
+		return a.er(c, http.StatusPreconditionFailed)
 	}
 
 	// 删除
 	if err := a.db.WithContext(rctx).Delete(&models.Site{}, id).Error; err != nil {
 		a.l.Error("failed to delete site", zap.Uint("id", id), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.NoContent(http.StatusOK)

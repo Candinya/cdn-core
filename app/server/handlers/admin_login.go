@@ -21,28 +21,28 @@ func (a *App) AuthLogin(c echo.Context) error {
 	var req admin.AuthLoginJSONRequestBody
 	if err := c.Bind(&req); err != nil {
 		a.l.Error("failed to bind json body", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 没有写用户名或密码
 	if req.Username == nil || req.Password == nil {
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 计算密码 hash 并进行检查
 	passwordHash, err := argon2id.CreateHash(*req.Password, argon2id.DefaultParams)
 	if err != nil {
 		a.l.Error("failed to hash password", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	var user models.User
 	if err = a.db.WithContext(rctx).First(&user, "username = ? AND password = ?", *req.Username, passwordHash).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to find user", zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
@@ -55,7 +55,7 @@ func (a *App) AuthLogin(c echo.Context) error {
 	})
 	if err != nil {
 		a.l.Error("failed to sign token", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	// 返回

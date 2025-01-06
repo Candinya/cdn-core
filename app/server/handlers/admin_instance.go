@@ -84,7 +84,7 @@ func (a *App) InstanceCreate(c echo.Context) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to auth", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -93,7 +93,7 @@ func (a *App) InstanceCreate(c echo.Context) error {
 	var req admin.InstanceCreateJSONRequestBody
 	if err = c.Bind(&req); err != nil {
 		a.l.Error("failed to bind request", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 创建
@@ -105,12 +105,12 @@ func (a *App) InstanceCreate(c echo.Context) error {
 	// 验证
 	if err, statusCode = a.instanceValidate(rctx, &instance); err != nil {
 		a.l.Error("failed to validate instance", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	if err := a.db.WithContext(rctx).Create(&instance).Error; err != nil {
 		a.l.Error("failed to create instance", zap.Any("instance", instance), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusCreated, &admin.InstanceInfoWithToken{
@@ -129,7 +129,7 @@ func (a *App) InstanceList(c echo.Context, params admin.InstanceListParams) erro
 	err, statusCode := a.authAdmin(c, false, nil)
 	if err != nil {
 		a.l.Error("failed to auth", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -143,11 +143,11 @@ func (a *App) InstanceList(c echo.Context, params admin.InstanceListParams) erro
 
 	if err := a.db.WithContext(rctx).Model(&models.Instance{}).Limit(limit).Offset(page * limit).Find(&instances).Error; err != nil {
 		a.l.Error("failed to get instance list", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 	if err := a.db.WithContext(rctx).Model(&models.Instance{}).Count(&instancesCount).Error; err != nil {
 		a.l.Error("failed to count instance", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	pageMax := instancesCount / int64(limit)
@@ -176,7 +176,7 @@ func (a *App) InstanceInfoGet(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, false, nil)
 	if err != nil {
 		a.l.Error("failed to auth", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -185,10 +185,10 @@ func (a *App) InstanceInfoGet(c echo.Context, id uint) error {
 	var instance models.Instance
 	if err := a.db.WithContext(rctx).First(&instance, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get instance", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
@@ -208,7 +208,7 @@ func (a *App) InstanceInfoUpdate(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -217,17 +217,17 @@ func (a *App) InstanceInfoUpdate(c echo.Context, id uint) error {
 	var req admin.InstanceInfoUpdateJSONRequestBody
 	if err = c.Bind(&req); err != nil {
 		a.l.Error("failed to bind request", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 从数据库中获得
 	var instance models.Instance
 	if err := a.db.WithContext(rctx).First(&instance, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get instance", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
@@ -240,13 +240,13 @@ func (a *App) InstanceInfoUpdate(c echo.Context, id uint) error {
 	// 验证
 	if err, statusCode = a.instanceValidate(rctx, &instance); err != nil {
 		a.l.Error("failed to validate instance", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	// 更新
 	if err := a.db.WithContext(rctx).Updates(&instance).Error; err != nil {
 		a.l.Error("failed to update instance", zap.Any("instance", instance), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusCreated, &admin.InstanceInfoWithID{
@@ -265,7 +265,7 @@ func (a *App) InstanceRotateToken(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -274,10 +274,10 @@ func (a *App) InstanceRotateToken(c echo.Context, id uint) error {
 	var instance models.Instance
 	if err := a.db.WithContext(rctx).First(&instance, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get instance", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
@@ -288,7 +288,7 @@ func (a *App) InstanceRotateToken(c echo.Context, id uint) error {
 	newToken := uuid.New()
 	if err := a.db.WithContext(rctx).Model(&instance).Update("token", newToken).Error; err != nil {
 		a.l.Error("failed to update instance", zap.Any("instance", instance), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusCreated, &admin.InstanceInfoWithToken{
@@ -308,7 +308,7 @@ func (a *App) InstanceDelete(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -316,7 +316,7 @@ func (a *App) InstanceDelete(c echo.Context, id uint) error {
 	// 删除
 	if err := a.db.WithContext(rctx).Delete(&models.Instance{}, id).Error; err != nil {
 		a.l.Error("failed to delete instance", zap.Uint("id", id), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	// 清理缓存

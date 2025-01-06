@@ -83,7 +83,7 @@ func (a *App) TemplateCreate(c echo.Context) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to auth", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -92,7 +92,7 @@ func (a *App) TemplateCreate(c echo.Context) error {
 	var req admin.TemplateCreateJSONRequestBody
 	if err = c.Bind(&req); err != nil {
 		a.l.Error("failed to bind request", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 创建
@@ -101,7 +101,7 @@ func (a *App) TemplateCreate(c echo.Context) error {
 
 	if err := a.db.WithContext(rctx).Create(&template).Error; err != nil {
 		a.l.Error("failed to create template", zap.Any("template", template), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusCreated, &admin.TemplateInfoWithID{
@@ -118,7 +118,7 @@ func (a *App) TemplateList(c echo.Context, params admin.TemplateListParams) erro
 	err, statusCode := a.authAdmin(c, false, nil)
 	if err != nil {
 		a.l.Error("failed to auth", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -132,11 +132,11 @@ func (a *App) TemplateList(c echo.Context, params admin.TemplateListParams) erro
 
 	if err := a.db.WithContext(rctx).Model(&models.Template{}).Limit(limit).Offset(page * limit).Find(&templates).Error; err != nil {
 		a.l.Error("failed to get template list", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 	if err := a.db.WithContext(rctx).Model(&models.Template{}).Count(&templatesCount).Error; err != nil {
 		a.l.Error("failed to count template", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	pageMax := templatesCount / int64(limit)
@@ -165,7 +165,7 @@ func (a *App) TemplateInfoGet(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, false, nil)
 	if err != nil {
 		a.l.Error("failed to auth", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -174,10 +174,10 @@ func (a *App) TemplateInfoGet(c echo.Context, id uint) error {
 	var template models.Template
 	if err := a.db.WithContext(rctx).First(&template, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get template", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
@@ -195,7 +195,7 @@ func (a *App) TemplateInfoUpdate(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -204,17 +204,17 @@ func (a *App) TemplateInfoUpdate(c echo.Context, id uint) error {
 	var req admin.TemplateInfoUpdateJSONRequestBody
 	if err = c.Bind(&req); err != nil {
 		a.l.Error("failed to bind request", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 从数据库中获得
 	var template models.Template
 	if err := a.db.WithContext(rctx).First(&template, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get template", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
@@ -223,7 +223,7 @@ func (a *App) TemplateInfoUpdate(c echo.Context, id uint) error {
 		req.Variables != nil {
 		if err := a.templateUpdateClearCache(rctx, template.ID); err != nil {
 			a.l.Error("failed to clear cache", zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
@@ -233,7 +233,7 @@ func (a *App) TemplateInfoUpdate(c echo.Context, id uint) error {
 	// 更新信息
 	if err := a.db.WithContext(rctx).Updates(&template).Error; err != nil {
 		a.l.Error("failed to update template", zap.Any("template", template), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusCreated, &admin.TemplateInfoWithID{
@@ -250,7 +250,7 @@ func (a *App) TemplateDelete(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -258,15 +258,15 @@ func (a *App) TemplateDelete(c echo.Context, id uint) error {
 	// 检查是否可以被删除
 	if ableToDelete, err := a.templateCheckAbleToDelete(rctx, id); err != nil {
 		a.l.Error("failed to check able-to-delete", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	} else if !ableToDelete {
-		return c.NoContent(http.StatusPreconditionFailed)
+		return a.er(c, http.StatusPreconditionFailed)
 	}
 
 	// 删除
 	if err := a.db.WithContext(rctx).Delete(&models.Template{}, id).Error; err != nil {
 		a.l.Error("failed to delete template", zap.Uint("id", id), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.NoContent(http.StatusOK)

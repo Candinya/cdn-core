@@ -127,7 +127,7 @@ func (a *App) CertCreate(c echo.Context) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to auth", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -136,7 +136,7 @@ func (a *App) CertCreate(c echo.Context) error {
 	var req admin.CertCreateJSONRequestBody
 	if err = c.Bind(&req); err != nil {
 		a.l.Error("failed to bind request", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 创建
@@ -145,7 +145,7 @@ func (a *App) CertCreate(c echo.Context) error {
 
 	if err := a.db.WithContext(rctx).Create(&cert).Error; err != nil {
 		a.l.Error("failed to create cert", zap.Any("cert", cert), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusCreated, &admin.CertInfoWithID{
@@ -162,7 +162,7 @@ func (a *App) CertList(c echo.Context, params admin.CertListParams) error {
 	err, statusCode := a.authAdmin(c, false, nil)
 	if err != nil {
 		a.l.Error("failed to auth", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -176,11 +176,11 @@ func (a *App) CertList(c echo.Context, params admin.CertListParams) error {
 
 	if err := a.db.WithContext(rctx).Model(&models.Cert{}).Limit(limit).Offset(page * limit).Find(&certs).Error; err != nil {
 		a.l.Error("failed to get cert list", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 	if err := a.db.WithContext(rctx).Model(&models.Cert{}).Count(&certsCount).Error; err != nil {
 		a.l.Error("failed to count cert", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	pageMax := certsCount / int64(limit)
@@ -209,7 +209,7 @@ func (a *App) CertInfoGet(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, false, nil)
 	if err != nil {
 		a.l.Error("failed to auth", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -218,10 +218,10 @@ func (a *App) CertInfoGet(c echo.Context, id uint) error {
 	var cert models.Cert
 	if err := a.db.WithContext(rctx).First(&cert, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get cert", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
@@ -238,7 +238,7 @@ func (a *App) CertInfoUpdate(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -247,17 +247,17 @@ func (a *App) CertInfoUpdate(c echo.Context, id uint) error {
 	var req admin.CertInfoUpdateJSONRequestBody
 	if err = c.Bind(&req); err != nil {
 		a.l.Error("failed to bind request", zap.Error(err))
-		return c.NoContent(http.StatusBadRequest)
+		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 从数据库中获得
 	var cert models.Cert
 	if err := a.db.WithContext(rctx).First(&cert, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get cert", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
@@ -269,7 +269,7 @@ func (a *App) CertInfoUpdate(c echo.Context, id uint) error {
 				(cert.IntermediateCertificate == ""), // 旧 CA 证书为空
 		); err != nil {
 			a.l.Error("failed to clear cache", zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
@@ -279,7 +279,7 @@ func (a *App) CertInfoUpdate(c echo.Context, id uint) error {
 	// 更新信息
 	if err := a.db.WithContext(rctx).Updates(&cert).Error; err != nil {
 		a.l.Error("failed to update cert", zap.Any("cert", cert), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.JSON(http.StatusCreated, &admin.CertInfoWithID{
@@ -296,7 +296,7 @@ func (a *App) CertRenew(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -305,15 +305,15 @@ func (a *App) CertRenew(c echo.Context, id uint) error {
 	var cert models.Cert
 	if err := a.db.WithContext(rctx).First(&cert, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.NoContent(http.StatusNotFound)
+			return a.er(c, http.StatusNotFound)
 		} else {
 			a.l.Error("failed to get cert", zap.Uint("id", id), zap.Error(err))
-			return c.NoContent(http.StatusInternalServerError)
+			return a.er(c, http.StatusInternalServerError)
 		}
 	}
 
 	if cert.Provider == nil {
-		return c.NoContent(http.StatusNotImplemented)
+		return a.er(c, http.StatusNotImplemented)
 	}
 
 	// todo: 调用 provider 处理
@@ -321,13 +321,13 @@ func (a *App) CertRenew(c echo.Context, id uint) error {
 	// 清理缓存
 	if err := a.certUpdateClearCache(rctx, cert.ID, false); err != nil {
 		a.l.Error("failed to clear cache", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	// 更新信息
 	//if err := a.db.WithContext(rctx).Model(&cert).Update("content", newContentBytes).Error; err != nil {
 	//	a.l.Error("failed to update cert", zap.Any("cert", cert), zap.Error(err))
-	//	return c.NoContent(http.StatusInternalServerError)
+	//	return a.er(c,http.StatusInternalServerError)
 	//}
 
 	return c.JSON(http.StatusCreated, &admin.CertInfoWithID{
@@ -344,7 +344,7 @@ func (a *App) CertDelete(c echo.Context, id uint) error {
 	err, statusCode := a.authAdmin(c, true, nil)
 	if err != nil {
 		a.l.Error("failed to get user", zap.Error(err))
-		return c.NoContent(statusCode)
+		return a.er(c, statusCode)
 	}
 
 	rctx := c.Request().Context()
@@ -352,15 +352,15 @@ func (a *App) CertDelete(c echo.Context, id uint) error {
 	// 检查是否可以被删除
 	if ableToDelete, err := a.certCheckAbleToDelete(rctx, id); err != nil {
 		a.l.Error("failed to check able-to-delete", zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	} else if !ableToDelete {
-		return c.NoContent(http.StatusPreconditionFailed)
+		return a.er(c, http.StatusPreconditionFailed)
 	}
 
 	// 删除
 	if err := a.db.WithContext(rctx).Delete(&models.Cert{}, id).Error; err != nil {
 		a.l.Error("failed to delete cert", zap.Uint("id", id), zap.Error(err))
-		return c.NoContent(http.StatusInternalServerError)
+		return a.er(c, http.StatusInternalServerError)
 	}
 
 	return c.NoContent(http.StatusOK)
