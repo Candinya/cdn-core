@@ -166,8 +166,11 @@ func (a *App) TemplateInfoUpdate(c echo.Context, id uint) error {
 		}
 	}
 
+	// 更新
+	a.templateMapFields(&req, &template)
+
 	// 更新信息
-	if err := a.db.WithContext(rctx).Model(&template).Updates(&req).Error; err != nil {
+	if err := a.db.WithContext(rctx).Updates(&template).Error; err != nil {
 		a.l.Error("failed to update template", zap.Any("template", template), zap.Error(err))
 		return c.NoContent(http.StatusInternalServerError)
 	}

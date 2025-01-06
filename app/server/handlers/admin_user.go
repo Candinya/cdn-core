@@ -11,6 +11,12 @@ import (
 	"net/http"
 )
 
+func (a *App) userMapFields(req *admin.UserInfoInput, user *models.User) {
+	if req.Name != nil {
+		user.Name = *req.Name
+	}
+}
+
 func (a *App) UserCreate(c echo.Context) error {
 	// 抓取 user 信息（认证）
 	err, statusCode := a.authAdmin(c, true, nil)
@@ -40,12 +46,12 @@ func (a *App) UserCreate(c echo.Context) error {
 		Username: req.Username,
 		Password: passwordHash,
 	}
-	if req.Name != nil {
-		user.Name = *req.Name
-	}
 	if req.IsAdmin != nil {
 		user.IsAdmin = *req.IsAdmin
 	}
+	a.userMapFields(&admin.UserInfoInput{
+		Name: req.Name,
+	}, &user)
 
 	if err := a.db.WithContext(rctx).Create(&user).Error; err != nil {
 		a.l.Error("failed to create user", zap.Any("user", user), zap.Error(err))
@@ -165,8 +171,10 @@ func (a *App) UserInfoUpdate(c echo.Context, id uint) error {
 		}
 	}
 
+	a.userMapFields(&req, &user)
+
 	// 更新用户信息
-	if err := a.db.WithContext(rctx).Model(&user).Updates(&req).Error; err != nil {
+	if err := a.db.WithContext(rctx).Updates(&user).Error; err != nil {
 		a.l.Error("failed to update user", zap.Any("user", user), zap.Error(err))
 		return c.NoContent(http.StatusInternalServerError)
 	}

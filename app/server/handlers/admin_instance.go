@@ -176,12 +176,9 @@ func (a *App) InstanceInfoGet(c echo.Context, id uint) error {
 		}
 	}
 
-	tokenStr := instance.Token.String()
-
 	return c.JSON(http.StatusCreated, &admin.InstanceInfoWithToken{
 		Id:                &instance.ID,
 		Name:              &instance.Name,
-		Token:             &tokenStr,
 		PreConfig:         &instance.PreConfig,
 		IsManualMode:      &instance.IsManualMode,
 		AdditionalFileIds: &instance.AdditionalFileIDs,

@@ -645,7 +645,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TemplateListResponse"
+                type: object
+                properties:
+                  list:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TemplateInfoWithID"
+                  page_max:
+                    $ref: "#/components/schemas/page_max"
         403:
           description: No permission
           content:
@@ -784,7 +791,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AdditionalFileListResponse"
+                type: object
+                properties:
+                  list:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AdditionalFileInfoWithID"
+                  page_max:
+                    $ref: "#/components/schemas/page_max"
         403:
           description: No permission
           content:
@@ -841,6 +855,71 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdditionalFileInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /additional-file/replace/{id}:
+    post:
+      tags:
+        - additional-file
+      summary: replace additional-file
+      security:
+        - JWTAuth: [admin]
+      operationId: additionalFileReplace
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/AdditionalFileInfoFile"
+      responses:
+        200:
+          description: Updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdditionalFileInfoWithID"
+        403:
+          description: No permission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+        404:
+          description: No such file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /additional-file/download/{id}:
+    get:
+      tags:
+        - additional-file
+      summary: download additional-file
+      security:
+        - JWTAuth: []
+      operationId: additionalFileDownload
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        200:
+          description: Get successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
         403:
           description: No permission
           content:
@@ -921,7 +1000,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CertListResponse"
+                type: object
+                properties:
+                  list:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CertInfoWithID"
+                  page_max:
+                    $ref: "#/components/schemas/page_max"
         403:
           description: No permission
           content:
@@ -1298,7 +1384,7 @@ components:
       properties:
         name:
           type: string
-        path:
+        filename:
           type: string
     AdditionalFileInfoWithID:
       allOf:

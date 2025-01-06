@@ -197,6 +197,9 @@ func (a *App) SiteInfoUpdate(c echo.Context, id uint) error {
 		}
 	}
 
+	// 更新
+	a.siteMapFields(&req, &site)
+
 	// 验证
 	if err, statusCode = a.siteValidate(rctx, &site); err != nil {
 		a.l.Error("failed to validate site", zap.Error(err))
@@ -204,7 +207,7 @@ func (a *App) SiteInfoUpdate(c echo.Context, id uint) error {
 	}
 
 	// 更新信息
-	if err := a.db.WithContext(rctx).Model(&site).Updates(&req).Error; err != nil {
+	if err := a.db.WithContext(rctx).Updates(&site).Error; err != nil {
 		a.l.Error("failed to update site", zap.Any("site", site), zap.Error(err))
 		return c.NoContent(http.StatusInternalServerError)
 	}
