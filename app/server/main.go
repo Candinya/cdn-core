@@ -68,8 +68,11 @@ func main() {
 	e.Use(middleware.Recover())
 
 	// 绑定 echo 服务
-	admin.RegisterHandlers(e, handlerApp)
-	worker.RegisterHandlers(e, handlerApp)
+	apiGroupAdmin := e.Group("/api/admin")
+	admin.RegisterHandlers(apiGroupAdmin, handlerApp)
+
+	apiGroupWorker := e.Group("/api/worker")
+	worker.RegisterHandlers(apiGroupWorker, handlerApp)
 
 	// 添加 API 文档
 	if !cfg.System.IsProd {
