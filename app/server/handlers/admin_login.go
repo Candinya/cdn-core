@@ -29,21 +29,23 @@ func (a *App) AuthLogin(c echo.Context) error {
 		return a.er(c, http.StatusBadRequest)
 	}
 
-	// 计算密码 hash 并进行检查
-	passwordHash, err := argon2id.CreateHash(*req.Password, argon2id.DefaultParams)
-	if err != nil {
-		a.l.Error("failed to hash password", zap.Error(err))
-		return a.er(c, http.StatusInternalServerError)
-	}
-
 	var user models.User
-	if err = a.db.WithContext(rctx).First(&user, "username = ? AND password = ?", *req.Username, passwordHash).Error; err != nil {
+	if err := a.db.WithContext(rctx).First(&user, "username = ?", *req.Username).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return a.er(c, http.StatusNotFound)
+			return a.er(c, http.StatusUnauthorized)
 		} else {
 			a.l.Error("failed to find user", zap.Error(err))
 			return a.er(c, http.StatusInternalServerError)
 		}
+	}
+
+	// 提取密码 hash 并进行校验
+	if match, _, err := argon2id.CheckHash(*req.Password, user.Password); err != nil {
+		a.l.Error("failed to check password", zap.Error(err))
+		return a.er(c, http.StatusInternalServerError)
+	} else if !match {
+		// 密码不一致
+		return a.er(c, http.StatusUnauthorized)
 	}
 
 	// 签出 JWT
