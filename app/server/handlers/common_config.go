@@ -28,9 +28,9 @@ func (a *App) buildInstanceConfigByModel(ctx context.Context, instance *models.I
 
 	// 依次添加站点
 	for _, siteID := range instance.SiteIDs {
-		siteConfig, err := a.buildSiteConfigByID(ctx, siteID)
+		siteConfig, err := a.buildSiteConfigByID(ctx, uint(siteID))
 		if err != nil {
-			a.l.Error("failed to build site config", zap.Uint("siteID", siteID), zap.Error(err))
+			a.l.Error("failed to build site config", zap.Uint("siteID", uint(siteID)), zap.Error(err))
 			return "", fmt.Errorf("failed to build site config %d: %w", siteID, err)
 		}
 		configSections = append(configSections, siteConfig)

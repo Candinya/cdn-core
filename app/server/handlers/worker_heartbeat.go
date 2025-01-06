@@ -24,7 +24,7 @@ func (a *App) buildHeartbeatData(ctx context.Context, w *models.Instance) ([]byt
 		var aFile models.AdditionalFile
 		if err := a.db.WithContext(ctx).First(&aFile, "id = ?", fileID).Error; err != nil {
 			// 文件记录拉取出错
-			a.l.Error("heartbeat get file", zap.Uint("fileID", fileID), zap.Error(err))
+			a.l.Error("heartbeat get file", zap.Uint("fileID", uint(fileID)), zap.Error(err))
 			return nil, fmt.Errorf("failed to get file: %w", err)
 		}
 

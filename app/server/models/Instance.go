@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -14,6 +15,6 @@ type Instance struct {
 	IsManualMode bool      `gorm:"column:is_manual_mode"`        // 是否为手动管理模式：不会通过 worker 应用服务器信息，不记录最后一次心跳状态
 	// LastSeen time.Time // 最后一次心跳，用于确认状态是否在线，还是离线（失联） // 这个存到 redis 里
 
-	AdditionalFileIDs []uint `gorm:"column:additional_file_ids;index"` // 使用到的额外文件
-	SiteIDs           []uint `gorm:"column:site_ids;index"`            // 部署在实例上的站点
+	AdditionalFileIDs pq.Int64Array `gorm:"column:additional_file_ids;type:integer[];index"` // 使用到的额外文件
+	SiteIDs           pq.Int64Array `gorm:"column:site_ids;type:integer[];index"`            // 部署在实例上的站点
 }

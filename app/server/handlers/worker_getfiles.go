@@ -49,7 +49,7 @@ func (a *App) buildInstanceFileListByModel(ctx context.Context, instance *models
 		var aFile models.AdditionalFile
 		if err := a.db.WithContext(ctx).First(&aFile, "id = ?", fileID).Error; err != nil {
 			// 文件记录拉取出错
-			a.l.Error("build instance file list get file", zap.Uint("fileID", fileID), zap.Error(err))
+			a.l.Error("build instance file list get file", zap.Uint("fileID", uint(fileID)), zap.Error(err))
 			return nil, fmt.Errorf("failed to get file: %w", err)
 		}
 

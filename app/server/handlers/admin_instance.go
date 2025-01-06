@@ -40,22 +40,22 @@ func (a *App) instanceMapFields(req *admin.InstanceInfoInput, instance *models.I
 		instance.IsManualMode = *req.IsManualMode
 	}
 	if req.AdditionalFileIds != nil {
-		instance.AdditionalFileIDs = *req.AdditionalFileIds
+		instance.AdditionalFileIDs = utils.UintArray2int64(*req.AdditionalFileIds)
 	}
 	if req.SiteIds != nil {
-		instance.SiteIDs = *req.SiteIds
+		instance.SiteIDs = utils.UintArray2int64(*req.SiteIds)
 	}
 }
 
 func (a *App) instanceValidate(ctx context.Context, instance *models.Instance) (error, int) {
 	// 检查 additional file ids
-	if err, statusCode := validateIDs[models.AdditionalFile](a.db.WithContext(ctx), instance.AdditionalFileIDs); err != nil {
+	if err, statusCode := validateIDs[models.AdditionalFile](a.db.WithContext(ctx), utils.Int64Array2uint(instance.AdditionalFileIDs)); err != nil {
 		a.l.Error("failed to validate additional file", zap.Error(err))
 		return err, statusCode
 	}
 
 	// 检查 site ids
-	if err, statusCode := validateIDs[models.Site](a.db.WithContext(ctx), instance.SiteIDs); err != nil {
+	if err, statusCode := validateIDs[models.Site](a.db.WithContext(ctx), utils.Int64Array2uint(instance.SiteIDs)); err != nil {
 		a.l.Error("failed to validate site", zap.Error(err))
 		return err, statusCode
 	}
@@ -119,8 +119,8 @@ func (a *App) InstanceCreate(c echo.Context) error {
 		Token:             utils.P(instance.Token.String()),
 		PreConfig:         &instance.PreConfig,
 		IsManualMode:      &instance.IsManualMode,
-		AdditionalFileIds: &instance.AdditionalFileIDs,
-		SiteIds:           &instance.SiteIDs,
+		AdditionalFileIds: utils.P(utils.Int64Array2uint(instance.AdditionalFileIDs)),
+		SiteIds:           utils.P(utils.Int64Array2uint(instance.SiteIDs)),
 	})
 }
 
@@ -197,8 +197,8 @@ func (a *App) InstanceInfoGet(c echo.Context, id uint) error {
 		Name:              &instance.Name,
 		PreConfig:         &instance.PreConfig,
 		IsManualMode:      &instance.IsManualMode,
-		AdditionalFileIds: &instance.AdditionalFileIDs,
-		SiteIds:           &instance.SiteIDs,
+		AdditionalFileIds: utils.P(utils.Int64Array2uint(instance.AdditionalFileIDs)),
+		SiteIds:           utils.P(utils.Int64Array2uint(instance.SiteIDs)),
 		LastSeen:          a.instanceGetLastSeen(rctx, instance.IsManualMode, instance.ID),
 	})
 }
@@ -254,8 +254,8 @@ func (a *App) InstanceInfoUpdate(c echo.Context, id uint) error {
 		Name:              &instance.Name,
 		PreConfig:         &instance.PreConfig,
 		IsManualMode:      &instance.IsManualMode,
-		AdditionalFileIds: &instance.AdditionalFileIDs,
-		SiteIds:           &instance.SiteIDs,
+		AdditionalFileIds: utils.P(utils.Int64Array2uint(instance.AdditionalFileIDs)),
+		SiteIds:           utils.P(utils.Int64Array2uint(instance.SiteIDs)),
 		LastSeen:          a.instanceGetLastSeen(rctx, instance.IsManualMode, instance.ID),
 	})
 }
@@ -297,8 +297,8 @@ func (a *App) InstanceRotateToken(c echo.Context, id uint) error {
 		Token:             utils.P(instance.Token.String()),
 		PreConfig:         &instance.PreConfig,
 		IsManualMode:      &instance.IsManualMode,
-		AdditionalFileIds: &instance.AdditionalFileIDs,
-		SiteIds:           &instance.SiteIDs,
+		AdditionalFileIds: utils.P(utils.Int64Array2uint(instance.AdditionalFileIDs)),
+		SiteIds:           utils.P(utils.Int64Array2uint(instance.SiteIDs)),
 		LastSeen:          a.instanceGetLastSeen(rctx, instance.IsManualMode, instance.ID),
 	})
 }
