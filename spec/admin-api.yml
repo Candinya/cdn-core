@@ -199,6 +199,10 @@ paths:
       responses:
         200:
           description: Updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfoWithID"
         403:
           description: No permission
           content:
@@ -296,6 +300,10 @@ paths:
       responses:
         200:
           description: Updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfoWithID"
         403:
           description: No permission
           content:
