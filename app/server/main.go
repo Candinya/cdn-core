@@ -53,18 +53,6 @@ func main() {
 
 	// 准备 echo 服务
 	e := echo.New()
-	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
-		LogURI:    true,
-		LogStatus: true,
-		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-			l.Info("request",
-				zap.String("URI", v.URI),
-				zap.Int("status", v.Status),
-			)
-
-			return nil
-		},
-	}))
 	e.Use(middleware.Recover())
 
 	// 绑定 echo 服务
