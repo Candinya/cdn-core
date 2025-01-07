@@ -56,6 +56,11 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.Recover())
 
+	// 调试模式下添加 CORS 头，方便跨域调试
+	if !cfg.System.IsProd {
+		e.Use(middleware.CORS())
+	}
+
 	// 绑定 echo 服务
 	apiGroupAdmin := e.Group("/api/admin")
 	admin.RegisterHandlers(apiGroupAdmin, handlerApp)
