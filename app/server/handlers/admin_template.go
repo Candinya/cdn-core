@@ -144,7 +144,7 @@ func (a *App) TemplateList(c echo.Context, params admin.TemplateListParams) erro
 		pageMax++
 	}
 
-	var resTemplates []admin.TemplateInfoWithID
+	resTemplates := []admin.TemplateInfoWithID{}
 	for _, template := range templates {
 		resTemplates = append(resTemplates, admin.TemplateInfoWithID{
 			Id:          &template.ID,

@@ -163,7 +163,7 @@ func (a *App) AdditionalFileList(c echo.Context, params admin.AdditionalFileList
 		pageMax++
 	}
 
-	var resFiles []admin.AdditionalFileInfoWithID
+	resFiles := []admin.AdditionalFileInfoWithID{}
 	for _, aFile := range aFiles {
 		resFiles = append(resFiles, admin.AdditionalFileInfoWithID{
 			Id:       &aFile.ID,

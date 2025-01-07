@@ -155,7 +155,7 @@ func (a *App) InstanceList(c echo.Context, params admin.InstanceListParams) erro
 		pageMax++
 	}
 
-	var resInstances []admin.InstanceInfoWithID
+	resInstances := []admin.InstanceInfoWithID{}
 	for _, instance := range instances {
 		resInstances = append(resInstances, admin.InstanceInfoWithID{
 			Id:       &instance.ID,

@@ -97,7 +97,7 @@ func (a *App) UserList(c echo.Context, params admin.UserListParams) error {
 		pageMax++
 	}
 
-	var resUsers []admin.UserInfoWithID
+	resUsers := []admin.UserInfoWithID{}
 	for _, user := range users {
 		resUsers = append(resUsers, admin.UserInfoWithID{
 			Id:       &user.ID,

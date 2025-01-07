@@ -188,7 +188,7 @@ func (a *App) CertList(c echo.Context, params admin.CertListParams) error {
 		pageMax++
 	}
 
-	var resCerts []admin.CertInfoWithID
+	resCerts := []admin.CertInfoWithID{}
 	for _, cert := range certs {
 		resCerts = append(resCerts, admin.CertInfoWithID{
 			Id:      &cert.ID,

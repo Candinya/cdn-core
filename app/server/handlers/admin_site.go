@@ -165,7 +165,7 @@ func (a *App) SiteList(c echo.Context, params admin.SiteListParams) error {
 		pageMax++
 	}
 
-	var resSites []admin.SiteInfoWithID
+	resSites := []admin.SiteInfoWithID{}
 	for _, site := range sites {
 		resSites = append(resSites, admin.SiteInfoWithID{
 			Id:     &site.ID,
