@@ -7,6 +7,7 @@ import (
 	"caddy-delivery-network/app/server/handlers"
 	"caddy-delivery-network/app/server/inits"
 	"caddy-delivery-network/app/server/jwt"
+	"caddy-delivery-network/app/server/middlewares"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -60,6 +61,7 @@ func main() {
 	admin.RegisterHandlers(apiGroupAdmin, handlerApp)
 
 	apiGroupWorker := e.Group("/api/worker")
+	apiGroupWorker.Use(middlewares.WorkerAuth(db, rdb, l))
 	worker.RegisterHandlers(apiGroupWorker, handlerApp)
 
 	// 添加 API 文档

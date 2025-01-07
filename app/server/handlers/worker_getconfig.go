@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"caddy-delivery-network/app/server/constants"
+	"caddy-delivery-network/app/server/models"
 	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
@@ -11,12 +12,7 @@ import (
 )
 
 func (a *App) GetConfig(c echo.Context, id uint) error {
-	// 抓取 worker 信息（认证）
-	w, err, statusCode := a.authInstance(c, id)
-	if err != nil {
-		a.l.Error("getconfig get worker", zap.Error(err))
-		return c.NoContent(statusCode)
-	}
+	w := c.Get("instance").(*models.Instance)
 
 	rctx := c.Request().Context()
 
