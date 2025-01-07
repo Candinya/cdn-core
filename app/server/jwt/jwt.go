@@ -48,12 +48,6 @@ func (j *JWT) ParseUser(tokenString string) (*User, error) {
 		return nil, fmt.Errorf("invalid token")
 	}
 
-	// 不确定是否还需要这个
-	//if time.Now().Unix() > user.Expires {
-	//	// token 已经过时
-	//	return nil, fmt.Errorf("token is expired")
-	//}
-
 	return &user, nil
 }
 
