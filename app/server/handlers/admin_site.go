@@ -151,7 +151,7 @@ func (a *App) SiteList(c echo.Context, params admin.SiteListParams) error {
 
 	page, limit := a.parsePagination(params.Page, params.Limit)
 
-	if err := a.db.WithContext(rctx).Model(&models.Site{}).Limit(limit).Offset(page * limit).Find(&sites).Error; err != nil {
+	if err := a.db.WithContext(rctx).Model(&models.Site{}).Order("id ASC").Limit(limit).Offset(page * limit).Find(&sites).Error; err != nil {
 		a.l.Error("failed to get site list", zap.Error(err))
 		return a.er(c, http.StatusInternalServerError)
 	}

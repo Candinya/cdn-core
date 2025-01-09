@@ -149,7 +149,7 @@ func (a *App) AdditionalFileList(c echo.Context, params admin.AdditionalFileList
 
 	page, limit := a.parsePagination(params.Page, params.Limit)
 
-	if err := a.db.WithContext(rctx).Model(&models.AdditionalFile{}).Limit(limit).Offset(page * limit).Find(&aFiles).Error; err != nil {
+	if err := a.db.WithContext(rctx).Model(&models.AdditionalFile{}).Order("id ASC").Limit(limit).Offset(page * limit).Find(&aFiles).Error; err != nil {
 		a.l.Error("failed to get file list", zap.Error(err))
 		return a.er(c, http.StatusInternalServerError)
 	}

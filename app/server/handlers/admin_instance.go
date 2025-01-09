@@ -141,7 +141,7 @@ func (a *App) InstanceList(c echo.Context, params admin.InstanceListParams) erro
 
 	page, limit := a.parsePagination(params.Page, params.Limit)
 
-	if err := a.db.WithContext(rctx).Model(&models.Instance{}).Limit(limit).Offset(page * limit).Find(&instances).Error; err != nil {
+	if err := a.db.WithContext(rctx).Model(&models.Instance{}).Order("id ASC").Limit(limit).Offset(page * limit).Find(&instances).Error; err != nil {
 		a.l.Error("failed to get instance list", zap.Error(err))
 		return a.er(c, http.StatusInternalServerError)
 	}
