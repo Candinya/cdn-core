@@ -4,6 +4,7 @@ import (
 	"caddy-delivery-network/app/server/constants"
 	"caddy-delivery-network/app/server/gen/oapi/admin"
 	"caddy-delivery-network/app/server/models"
+	"caddy-delivery-network/app/server/utils"
 	"context"
 	"errors"
 	"fmt"
@@ -164,11 +165,6 @@ func (a *App) SiteList(c echo.Context, params admin.SiteListParams) error {
 		return a.er(c, http.StatusInternalServerError)
 	}
 
-	pageMax := sitesCount / int64(limit)
-	if (sitesCount % int64(limit)) != 0 {
-		pageMax++
-	}
-
 	resSites := []admin.SiteInfoWithID{}
 	for _, site := range sites {
 		resSites = append(resSites, admin.SiteInfoWithID{
@@ -180,7 +176,7 @@ func (a *App) SiteList(c echo.Context, params admin.SiteListParams) error {
 
 	return c.JSON(http.StatusOK, &admin.SiteListResponse{
 		Limit:   &limit,
-		PageMax: &pageMax,
+		PageMax: utils.P(a.calcMaxPage(sitesCount, showAll, limit)),
 		List:    &resSites,
 	})
 }

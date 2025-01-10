@@ -4,6 +4,7 @@ import (
 	"caddy-delivery-network/app/server/constants"
 	"caddy-delivery-network/app/server/gen/oapi/admin"
 	"caddy-delivery-network/app/server/models"
+	"caddy-delivery-network/app/server/utils"
 	"context"
 	"errors"
 	"fmt"
@@ -143,11 +144,6 @@ func (a *App) TemplateList(c echo.Context, params admin.TemplateListParams) erro
 		return a.er(c, http.StatusInternalServerError)
 	}
 
-	pageMax := templatesCount / int64(limit)
-	if (templatesCount % int64(limit)) != 0 {
-		pageMax++
-	}
-
 	resTemplates := []admin.TemplateInfoWithID{}
 	for _, template := range templates {
 		resTemplates = append(resTemplates, admin.TemplateInfoWithID{
@@ -159,7 +155,7 @@ func (a *App) TemplateList(c echo.Context, params admin.TemplateListParams) erro
 
 	return c.JSON(http.StatusOK, &admin.TemplateListResponse{
 		Limit:   &limit,
-		PageMax: &pageMax,
+		PageMax: utils.P(a.calcMaxPage(templatesCount, showAll, limit)),
 		List:    &resTemplates,
 	})
 }

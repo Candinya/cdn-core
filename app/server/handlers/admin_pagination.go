@@ -23,3 +23,15 @@ func (a *App) parsePagination(page *uint, limit *uint) (bool, int, int) {
 
 	return false, int(parsedPage), int(parsedLimit)
 }
+
+func (a *App) calcMaxPage(count int64, showAll bool, limit int) int64 {
+	if showAll {
+		return 1
+	} else {
+		pageMax := count / int64(limit)
+		if (count % int64(limit)) != 0 {
+			pageMax++
+		}
+		return pageMax
+	}
+}

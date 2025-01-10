@@ -154,11 +154,6 @@ func (a *App) InstanceList(c echo.Context, params admin.InstanceListParams) erro
 		return a.er(c, http.StatusInternalServerError)
 	}
 
-	pageMax := instancesCount / int64(limit)
-	if (instancesCount % int64(limit)) != 0 {
-		pageMax++
-	}
-
 	resInstances := []admin.InstanceInfoWithID{}
 	for _, instance := range instances {
 		resInstances = append(resInstances, admin.InstanceInfoWithID{
@@ -170,7 +165,7 @@ func (a *App) InstanceList(c echo.Context, params admin.InstanceListParams) erro
 
 	return c.JSON(http.StatusOK, &admin.InstanceListResponse{
 		Limit:   &limit,
-		PageMax: &pageMax,
+		PageMax: utils.P(a.calcMaxPage(instancesCount, showAll, limit)),
 		List:    &resInstances,
 	})
 }

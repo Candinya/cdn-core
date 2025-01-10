@@ -3,6 +3,7 @@ package handlers
 import (
 	"caddy-delivery-network/app/server/gen/oapi/admin"
 	"caddy-delivery-network/app/server/models"
+	"caddy-delivery-network/app/server/utils"
 	"errors"
 	"github.com/alexedwards/argon2id"
 	"github.com/labstack/echo/v4"
@@ -96,11 +97,6 @@ func (a *App) UserList(c echo.Context, params admin.UserListParams) error {
 		return a.er(c, http.StatusInternalServerError)
 	}
 
-	pageMax := usersCount / int64(limit)
-	if (usersCount % int64(limit)) != 0 {
-		pageMax++
-	}
-
 	resUsers := []admin.UserInfoWithID{}
 	for _, user := range users {
 		resUsers = append(resUsers, admin.UserInfoWithID{
@@ -113,7 +109,7 @@ func (a *App) UserList(c echo.Context, params admin.UserListParams) error {
 
 	return c.JSON(http.StatusOK, &admin.UserListResponse{
 		Limit:   &limit,
-		PageMax: &pageMax,
+		PageMax: utils.P(a.calcMaxPage(usersCount, showAll, limit)),
 		List:    &resUsers,
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"caddy-delivery-network/app/server/constants"
 	"caddy-delivery-network/app/server/gen/oapi/admin"
 	"caddy-delivery-network/app/server/models"
+	"caddy-delivery-network/app/server/utils"
 	"context"
 	"errors"
 	"fmt"
@@ -182,11 +183,6 @@ func (a *App) AdditionalFileList(c echo.Context, params admin.AdditionalFileList
 		return a.er(c, http.StatusInternalServerError)
 	}
 
-	pageMax := aFilesCount / int64(limit)
-	if (aFilesCount % int64(limit)) != 0 {
-		pageMax++
-	}
-
 	resFiles := []admin.AdditionalFileInfoWithID{}
 	for _, aFile := range aFiles {
 		resFiles = append(resFiles, admin.AdditionalFileInfoWithID{
@@ -198,7 +194,7 @@ func (a *App) AdditionalFileList(c echo.Context, params admin.AdditionalFileList
 
 	return c.JSON(http.StatusOK, &admin.AdditionalFileListResponse{
 		Limit:   &limit,
-		PageMax: &pageMax,
+		PageMax: utils.P(a.calcMaxPage(aFilesCount, showAll, limit)),
 		List:    &resFiles,
 	})
 }

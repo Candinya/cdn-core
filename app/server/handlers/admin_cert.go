@@ -188,11 +188,6 @@ func (a *App) CertList(c echo.Context, params admin.CertListParams) error {
 		return a.er(c, http.StatusInternalServerError)
 	}
 
-	pageMax := certsCount / int64(limit)
-	if (certsCount % int64(limit)) != 0 {
-		pageMax++
-	}
-
 	resCerts := []admin.CertInfoWithID{}
 	for _, cert := range certs {
 		resCerts = append(resCerts, admin.CertInfoWithID{
@@ -206,7 +201,7 @@ func (a *App) CertList(c echo.Context, params admin.CertListParams) error {
 
 	return c.JSON(http.StatusOK, &admin.CertListResponse{
 		Limit:   &limit,
-		PageMax: &pageMax,
+		PageMax: utils.P(a.calcMaxPage(certsCount, showAll, limit)),
 		List:    &resCerts,
 	})
 }
