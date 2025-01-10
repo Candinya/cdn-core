@@ -11,8 +11,15 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"io"
 	"net/http"
 )
+
+// AdditionalFileInfoBody 生成代码里用的是 json ，无法处理 form ，所以只能在这里重新定义
+type AdditionalFileInfoBody struct {
+	Filename *string `form:"filename"`
+	Name     *string `form:"name"`
+}
 
 func (a *App) additionalFileMapFields(req *admin.AdditionalFileInfoInput, aFile *models.AdditionalFile) {
 	if req.Name != nil {
@@ -96,26 +103,39 @@ func (a *App) AdditionalFileCreate(c echo.Context) error {
 	rctx := c.Request().Context()
 
 	// 绑定请求体
-	var req admin.AdditionalFileCreateMultipartBody
+	var req AdditionalFileInfoBody
 	if err = c.Bind(&req); err != nil {
 		a.l.Error("failed to bind request", zap.Error(err))
+		return a.er(c, http.StatusBadRequest)
+	}
+
+	contentFile, err := c.FormFile("content")
+	if err != nil {
+		a.l.Error("failed to load form file", zap.Error(err))
 		return a.er(c, http.StatusBadRequest)
 	}
 
 	// 创建
 	var aFile models.AdditionalFile
 	var filename string
-	if req.Filename != nil {
+	if req.Filename != nil && *req.Filename != "" {
 		filename = *req.Filename
 	} else {
-		filename = req.Content.Filename()
+		filename = contentFile.Filename
 	}
 	a.additionalFileMapFields(&admin.AdditionalFileInfoInput{
 		Name:     req.Name,
 		Filename: &filename,
 	}, &aFile)
 
-	if aFile.Content, err = req.Content.Bytes(); err != nil {
+	f, err := contentFile.Open()
+	if err != nil {
+		a.l.Error("failed to open file", zap.Error(err))
+		return a.er(c, http.StatusInternalServerError)
+	}
+	defer f.Close()
+
+	if aFile.Content, err = io.ReadAll(f); err != nil {
 		a.l.Error("failed to read file content", zap.Error(err))
 		return a.er(c, http.StatusInternalServerError)
 	}
@@ -270,9 +290,9 @@ func (a *App) AdditionalFileReplace(c echo.Context, id uint) error {
 	rctx := c.Request().Context()
 
 	// 绑定请求体
-	var req admin.AdditionalFileReplaceMultipartBody
-	if err = c.Bind(&req); err != nil {
-		a.l.Error("failed to bind request", zap.Error(err))
+	contentFile, err := c.FormFile("content")
+	if err != nil {
+		a.l.Error("failed to load form file", zap.Error(err))
 		return a.er(c, http.StatusBadRequest)
 	}
 
@@ -287,13 +307,14 @@ func (a *App) AdditionalFileReplace(c echo.Context, id uint) error {
 		}
 	}
 
-	// 清理缓存（文件名没有变化，只需要清理心跳数据）
-	if err := a.additionalFileUpdateClearCache(rctx, aFile.ID, aFile.Filename, aFile.Filename); err != nil {
-		a.l.Error("failed to clear cache", zap.Error(err))
+	f, err := contentFile.Open()
+	if err != nil {
+		a.l.Error("failed to open file", zap.Error(err))
 		return a.er(c, http.StatusInternalServerError)
 	}
+	defer f.Close()
 
-	newContentBytes, err := req.Content.Bytes()
+	newContentBytes, err := io.ReadAll(f)
 	if err != nil {
 		a.l.Error("failed to read file content", zap.Error(err))
 		return a.er(c, http.StatusInternalServerError)
@@ -302,6 +323,12 @@ func (a *App) AdditionalFileReplace(c echo.Context, id uint) error {
 	// 更新信息
 	if err := a.db.WithContext(rctx).Model(&aFile).Update("content", newContentBytes).Error; err != nil {
 		a.l.Error("failed to update file", zap.Any("file", aFile), zap.Error(err))
+		return a.er(c, http.StatusInternalServerError)
+	}
+
+	// 清理缓存（文件名没有变化，只需要清理心跳数据）
+	if err := a.additionalFileUpdateClearCache(rctx, aFile.ID, aFile.Filename, aFile.Filename); err != nil {
+		a.l.Error("failed to clear cache", zap.Error(err))
 		return a.er(c, http.StatusInternalServerError)
 	}
 
