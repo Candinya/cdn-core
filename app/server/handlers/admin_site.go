@@ -28,7 +28,7 @@ func (a *App) siteMapFields(req *admin.SiteInfoInput, site *models.Site) {
 		site.TemplateValues = *req.TemplateValues
 	}
 
-	if req.CertId != nil {
+	if req.CertId != nil && *req.CertId != 0 {
 		site.CertID = req.CertId
 	}
 }
@@ -259,6 +259,18 @@ func (a *App) SiteInfoUpdate(c echo.Context, id uint) error {
 	if err := a.db.WithContext(rctx).Updates(&site).Error; err != nil {
 		a.l.Error("failed to update site", zap.Any("site", site), zap.Error(err))
 		return a.er(c, http.StatusInternalServerError)
+	}
+
+	if req.CertId == nil || *req.CertId == 0 {
+		// 检查是否存在模式变更
+		if site.CertID != nil {
+			// 切换成非指定证书模式，即清理 cert 选项
+			if err := a.db.WithContext(rctx).Model(&site).Update("cert_id", nil).Error; err != nil {
+				a.l.Error("failed to update site's cert mode", zap.Any("site", site), zap.Error(err))
+				return a.er(c, http.StatusInternalServerError)
+			}
+			site.CertID = nil
+		} // 如果是无证书变有证书，会设置 cert 参数，就不用特判
 	}
 
 	return c.JSON(http.StatusOK, &admin.SiteInfoWithID{
