@@ -192,10 +192,11 @@ func (a *App) CertList(c echo.Context, params admin.CertListParams) error {
 	resCerts := []admin.CertInfoWithID{}
 	for _, cert := range certs {
 		resCerts = append(resCerts, admin.CertInfoWithID{
-			Id:        &cert.ID,
-			Name:      &cert.Name,
-			Domains:   (*[]string)(&cert.Domains),
-			ExpiresAt: utils.P(cert.ExpiresAt.Unix()),
+			Id:           &cert.ID,
+			Name:         &cert.Name,
+			Domains:      (*[]string)(&cert.Domains),
+			ExpiresAt:    utils.P(cert.ExpiresAt.Unix()),
+			IsManualMode: utils.P(cert.Provider == nil),
 		})
 	}
 
@@ -228,10 +229,11 @@ func (a *App) CertInfoGet(c echo.Context, id uint) error {
 	}
 
 	return c.JSON(http.StatusOK, &admin.CertInfoWithID{
-		Id:        &cert.ID,
-		Name:      &cert.Name,
-		Domains:   (*[]string)(&cert.Domains),
-		ExpiresAt: utils.P(cert.ExpiresAt.Unix()),
+		Id:           &cert.ID,
+		Name:         &cert.Name,
+		Domains:      (*[]string)(&cert.Domains),
+		ExpiresAt:    utils.P(cert.ExpiresAt.Unix()),
+		IsManualMode: utils.P(cert.Provider == nil),
 	})
 }
 
@@ -284,11 +286,24 @@ func (a *App) CertInfoUpdate(c echo.Context, id uint) error {
 		return a.er(c, http.StatusInternalServerError)
 	}
 
+	if req.IsManualMode != nil {
+		// 检查是否存在模式变更
+		if *req.IsManualMode && cert.Provider != nil {
+			// 切换成手动模式，即清理 provider 选项
+			if err := a.db.WithContext(rctx).Model(&cert).Update("provider", nil).Error; err != nil {
+				a.l.Error("failed to update cert mode", zap.Any("cert", cert), zap.Error(err))
+				return a.er(c, http.StatusInternalServerError)
+			}
+			cert.Provider = nil
+		} // 如果是手动模式变自动，会设置 provider 参数，就不用特判
+	}
+
 	return c.JSON(http.StatusOK, &admin.CertInfoWithID{
-		Id:        &cert.ID,
-		Name:      &cert.Name,
-		Domains:   (*[]string)(&cert.Domains),
-		ExpiresAt: utils.P(cert.ExpiresAt.Unix()),
+		Id:           &cert.ID,
+		Name:         &cert.Name,
+		Domains:      (*[]string)(&cert.Domains),
+		ExpiresAt:    utils.P(cert.ExpiresAt.Unix()),
+		IsManualMode: utils.P(cert.Provider == nil),
 		// 其他字段不开放
 	})
 }

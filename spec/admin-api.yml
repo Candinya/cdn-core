@@ -1405,6 +1405,8 @@ components:
           type: array
           items:
             type: string
+        is_manual_mode:
+          type: boolean
         provider:
           type: string
         certificate:
