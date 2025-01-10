@@ -81,9 +81,13 @@ func (a *App) UserList(c echo.Context, params admin.UserListParams) error {
 		usersCount int64
 	)
 
-	page, limit := a.parsePagination(params.Page, params.Limit)
+	showAll, page, limit := a.parsePagination(params.Page, params.Limit)
+	queryBase := a.db.WithContext(rctx).Model(&models.User{}).Order("id ASC")
+	if !showAll {
+		queryBase = queryBase.Limit(limit).Offset(page * limit)
+	}
 
-	if err := a.db.WithContext(rctx).Model(&models.User{}).Order("id ASC").Limit(limit).Offset(page * limit).Find(&users).Error; err != nil {
+	if err := queryBase.Find(&users).Error; err != nil {
 		a.l.Error("failed to get user list", zap.Error(err))
 		return a.er(c, http.StatusInternalServerError)
 	}

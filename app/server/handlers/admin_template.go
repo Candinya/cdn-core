@@ -128,9 +128,13 @@ func (a *App) TemplateList(c echo.Context, params admin.TemplateListParams) erro
 		templatesCount int64
 	)
 
-	page, limit := a.parsePagination(params.Page, params.Limit)
+	showAll, page, limit := a.parsePagination(params.Page, params.Limit)
+	queryBase := a.db.WithContext(rctx).Model(&models.Template{}).Order("id ASC")
+	if !showAll {
+		queryBase = queryBase.Limit(limit).Offset(page * limit)
+	}
 
-	if err := a.db.WithContext(rctx).Model(&models.Template{}).Order("id ASC").Limit(limit).Offset(page * limit).Find(&templates).Error; err != nil {
+	if err := queryBase.Find(&templates).Error; err != nil {
 		a.l.Error("failed to get template list", zap.Error(err))
 		return a.er(c, http.StatusInternalServerError)
 	}

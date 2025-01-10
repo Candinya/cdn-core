@@ -173,9 +173,13 @@ func (a *App) CertList(c echo.Context, params admin.CertListParams) error {
 		certsCount int64
 	)
 
-	page, limit := a.parsePagination(params.Page, params.Limit)
+	showAll, page, limit := a.parsePagination(params.Page, params.Limit)
+	queryBase := a.db.WithContext(rctx).Model(&models.Cert{}).Order("id ASC")
+	if !showAll {
+		queryBase = queryBase.Limit(limit).Offset(page * limit)
+	}
 
-	if err := a.db.WithContext(rctx).Model(&models.Cert{}).Order("id ASC").Limit(limit).Offset(page * limit).Find(&certs).Error; err != nil {
+	if err := queryBase.Find(&certs).Error; err != nil {
 		a.l.Error("failed to get cert list", zap.Error(err))
 		return a.er(c, http.StatusInternalServerError)
 	}

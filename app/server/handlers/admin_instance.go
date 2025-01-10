@@ -139,9 +139,13 @@ func (a *App) InstanceList(c echo.Context, params admin.InstanceListParams) erro
 		instancesCount int64
 	)
 
-	page, limit := a.parsePagination(params.Page, params.Limit)
+	showAll, page, limit := a.parsePagination(params.Page, params.Limit)
+	queryBase := a.db.WithContext(rctx).Model(&models.Instance{}).Order("id ASC")
+	if !showAll {
+		queryBase = queryBase.Limit(limit).Offset(page * limit)
+	}
 
-	if err := a.db.WithContext(rctx).Model(&models.Instance{}).Order("id ASC").Limit(limit).Offset(page * limit).Find(&instances).Error; err != nil {
+	if err := queryBase.Find(&instances).Error; err != nil {
 		a.l.Error("failed to get instance list", zap.Error(err))
 		return a.er(c, http.StatusInternalServerError)
 	}

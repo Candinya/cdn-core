@@ -167,9 +167,13 @@ func (a *App) AdditionalFileList(c echo.Context, params admin.AdditionalFileList
 		aFilesCount int64
 	)
 
-	page, limit := a.parsePagination(params.Page, params.Limit)
+	showAll, page, limit := a.parsePagination(params.Page, params.Limit)
+	queryBase := a.db.WithContext(rctx).Model(&models.AdditionalFile{}).Order("id ASC")
+	if !showAll {
+		queryBase = queryBase.Limit(limit).Offset(page * limit)
+	}
 
-	if err := a.db.WithContext(rctx).Model(&models.AdditionalFile{}).Order("id ASC").Limit(limit).Offset(page * limit).Find(&aFiles).Error; err != nil {
+	if err := queryBase.Find(&aFiles).Error; err != nil {
 		a.l.Error("failed to get file list", zap.Error(err))
 		return a.er(c, http.StatusInternalServerError)
 	}
