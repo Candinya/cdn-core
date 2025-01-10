@@ -157,9 +157,10 @@ func (a *App) InstanceList(c echo.Context, params admin.InstanceListParams) erro
 	resInstances := []admin.InstanceInfoWithID{}
 	for _, instance := range instances {
 		resInstances = append(resInstances, admin.InstanceInfoWithID{
-			Id:       &instance.ID,
-			Name:     &instance.Name,
-			LastSeen: a.instanceGetLastSeen(rctx, instance.IsManualMode, instance.ID),
+			Id:           &instance.ID,
+			Name:         &instance.Name,
+			IsManualMode: &instance.IsManualMode,
+			LastSeen:     a.instanceGetLastSeen(rctx, instance.IsManualMode, instance.ID),
 		})
 	}
 
