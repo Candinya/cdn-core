@@ -42,8 +42,8 @@ func (a *App) siteValidate(ctx context.Context, site *models.Site) (error, int) 
 
 	// 检查 cert id
 	if site.CertID != nil {
-		if err, statusCode := validateIDs[models.Site](a.db.WithContext(ctx), []uint{*site.CertID}); err != nil {
-			a.l.Error("failed to validate site", zap.Error(err))
+		if err, statusCode := validateIDs[models.Cert](a.db.WithContext(ctx), []uint{*site.CertID}); err != nil {
+			a.l.Error("failed to validate cert", zap.Error(err))
 			return err, statusCode
 		}
 	}
