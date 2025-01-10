@@ -27,14 +27,15 @@ func (a *App) certMapFields(req *admin.CertInfoInput, cert *models.Cert) {
 		cert.Domains = *req.Domains
 	}
 	if req.Provider != nil {
-		// 忽略错误
-		_ = json.Unmarshal([]byte(*req.Provider), &cert.Provider)
+		if err := json.Unmarshal([]byte(*req.Provider), &cert.Provider); err != nil {
+			a.l.Error("provider unmarshal failed", zap.Error(err))
+		}
 	}
 
 	// 详细信息
 	if req.Certificate != nil {
 		cert.Certificate = *req.Certificate
-		cert.ExpiresAt = a.certCalcExpiresAt(*req.Certificate)
+		cert.ExpiresAt, cert.Domains = a.certParseMeta(*req.Certificate) // 优先级更高，会覆盖即使提交了域名的证书
 	}
 	if req.PrivateKey != nil {
 		encryptedKey, err := a.aesEncrypt([]byte(*req.PrivateKey))
@@ -52,19 +53,19 @@ func (a *App) certMapFields(req *admin.CertInfoInput, cert *models.Cert) {
 	}
 }
 
-func (a *App) certCalcExpiresAt(certificate string) time.Time {
+func (a *App) certParseMeta(certificate string) (time.Time, []string) {
 	block, _ := pem.Decode([]byte(certificate))
 	if block == nil {
 		a.l.Error("failed to parse certificate", zap.String("certificate", certificate))
-		return time.Time{}
+		return time.Time{}, nil
 	}
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
 		a.l.Error("failed to parse certificate", zap.String("certificate", certificate))
-		return time.Time{}
+		return time.Time{}, nil
 	}
 
-	return cert.NotAfter
+	return cert.NotAfter, cert.DNSNames
 }
 
 func (a *App) certUpdateClearCache(ctx context.Context, id uint, isCACertStatusChanged bool) error {
@@ -191,9 +192,10 @@ func (a *App) CertList(c echo.Context, params admin.CertListParams) error {
 	resCerts := []admin.CertInfoWithID{}
 	for _, cert := range certs {
 		resCerts = append(resCerts, admin.CertInfoWithID{
-			Id:      &cert.ID,
-			Name:    &cert.Name,
-			Domains: (*[]string)(&cert.Domains),
+			Id:        &cert.ID,
+			Name:      &cert.Name,
+			Domains:   (*[]string)(&cert.Domains),
+			ExpiresAt: utils.P(cert.ExpiresAt.Unix()),
 		})
 	}
 
