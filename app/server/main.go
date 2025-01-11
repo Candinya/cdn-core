@@ -8,12 +8,17 @@ import (
 	"caddy-delivery-network/app/server/inits"
 	"caddy-delivery-network/app/server/jwt"
 	"caddy-delivery-network/app/server/middlewares"
+	"embed"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/zap"
 	"log"
+	"net/http"
 )
+
+//go:embed web
+var embeddedWeb embed.FS
 
 func main() {
 	// 初始化配置
@@ -87,6 +92,13 @@ func main() {
 			e.Pre(apidocs.Doc("/api/worker", swgJson))
 		}
 	}
+
+	// 添加控制台面板
+	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
+		HTML5:      true,
+		Root:       "web",
+		Filesystem: http.FS(embeddedWeb),
+	}))
 
 	// 启动 echo 服务
 	if err := e.Start(cfg.System.Listen); err != nil {
