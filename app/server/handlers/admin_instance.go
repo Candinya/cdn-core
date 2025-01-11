@@ -48,10 +48,23 @@ func (a *App) instanceMapFields(req *admin.InstanceInfoInput, instance *models.I
 }
 
 func (a *App) instanceValidate(ctx context.Context, instance *models.Instance) (error, int) {
-	// 检查 additional file ids
-	if err, statusCode := validateIDs[models.AdditionalFile](a.db.WithContext(ctx), utils.Int64Array2uint(instance.AdditionalFileIDs)); err != nil {
-		a.l.Error("failed to validate additional file", zap.Error(err))
-		return err, statusCode
+	// 检查 additional file id 和 filename
+	ids := utils.Int64Array2uint(instance.AdditionalFileIDs)
+	if len(ids) > 0 {
+		var (
+			count int64
+		)
+		if err := a.db.WithContext(ctx).
+			Model(&models.AdditionalFile{}).
+			Distinct("filename").
+			Where("id IN ?", ids).
+			Count(&count).Error; err != nil {
+			// 查询失败
+			return fmt.Errorf("failed to count additional file: %w", err), http.StatusInternalServerError
+		} else if int(count) != len(ids) {
+			// 数量对不上
+			return fmt.Errorf("additional file count ids mismatch"), http.StatusBadRequest
+		}
 	}
 
 	// 检查 site ids
