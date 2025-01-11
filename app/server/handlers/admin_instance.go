@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"net/http"
@@ -20,7 +21,9 @@ func (a *App) instanceGetLastSeen(ctx context.Context, isManualMode bool, id uin
 	if !isManualMode {
 		cacheKey := fmt.Sprintf(constants.CacheKeyInstanceLastseen, id)
 		if lastSeenTs, err := a.rdb.Get(ctx, cacheKey).Int64(); err != nil {
-			a.l.Error("failed to get instance last seen", zap.Uint("id", id), zap.Error(err))
+			if !errors.Is(err, redis.Nil) {
+				a.l.Error("failed to get instance last seen", zap.Uint("id", id), zap.Error(err))
+			}
 		} else {
 			return &lastSeenTs
 		}
