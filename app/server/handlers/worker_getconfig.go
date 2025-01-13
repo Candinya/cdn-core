@@ -17,25 +17,26 @@ func (a *App) GetConfig(c echo.Context, id uint) error {
 	rctx := c.Request().Context()
 
 	// 检查是否有缓存结果
-	var resString string
-	if data, err := a.rdb.Get(rctx, fmt.Sprintf(constants.CacheKeyInstanceConfig, w.ID)).Result(); err != nil {
+	var resBytes []byte
+	if data, err := a.rdb.Get(rctx, fmt.Sprintf(constants.CacheKeyInstanceConfig, w.ID)).Bytes(); err != nil {
 		if !errors.Is(err, redis.Nil) {
 			a.l.Error("getconfig check cache", zap.Error(err))
 		}
 
 		// 产生结果
-		resString, err = a.buildInstanceConfigByModel(rctx, w)
+		resString, err := a.buildInstanceConfigByModel(rctx, w)
 		if err != nil {
 			a.l.Error("getconfig build config", zap.Error(err))
 			return c.NoContent(http.StatusInternalServerError)
 		}
+		resBytes = []byte(resString)
 
 		// 加入缓存
 		a.rdb.Set(rctx, fmt.Sprintf(constants.CacheKeyInstanceConfig, w.ID), resString, constants.CacheExpireInstanceConfig)
 	} else {
-		resString = data
+		resBytes = data
 	}
 
 	// 使用结果响应
-	return c.String(http.StatusOK, resString)
+	return c.Blob(http.StatusOK, "text/caddyfile", resBytes)
 }

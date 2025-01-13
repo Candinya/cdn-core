@@ -41,9 +41,9 @@ paths:
         200:
           description: Success
           content:
-            application/json:
+            text/caddyfile: # text
               schema:
-                $ref: "#/components/schemas/GetConfigRes"
+                type: string
         404:
           description: No such instance (deleted or token mismatch)
         500:
@@ -122,14 +122,3 @@ components:
           type: string
         updated_at:
           $ref: "#/components/schemas/timestamp"
-    GetConfigRes:
-      type: object
-      required:
-        - updated_at
-        - content
-      properties:
-        updated_at:
-          $ref: "#/components/schemas/timestamp"
-        content:
-          type: string
-          description: Caddyfile
