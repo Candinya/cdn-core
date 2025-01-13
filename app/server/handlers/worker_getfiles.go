@@ -21,7 +21,7 @@ func (a *App) cacheInstanceFileListByModel(ctx context.Context, instance *models
 		return fmt.Errorf("failed to build instance file list by model: %w", err)
 	}
 
-	bytesMap := make(map[string][]byte)
+	stringMap := make(map[string]string)
 	for aFilePath, aFileMeta := range filesMap {
 		aFileMetaBytes, err := json.Marshal(&aFileMeta)
 		if err != nil {
@@ -29,12 +29,12 @@ func (a *App) cacheInstanceFileListByModel(ctx context.Context, instance *models
 			return fmt.Errorf("failed to marshal aFile meta: %w", err)
 		}
 
-		bytesMap[aFilePath] = aFileMetaBytes
+		stringMap[aFilePath] = string(aFileMetaBytes)
 	}
 
 	cacheKey := fmt.Sprintf(constants.CacheKeyInstanceFiles, instance.ID)
 
-	if err = a.rdb.HSet(ctx, cacheKey, bytesMap).Err(); err != nil {
+	if err = a.rdb.HSet(ctx, cacheKey, stringMap).Err(); err != nil {
 		return fmt.Errorf("failed to hset cache: %w", err)
 	}
 
