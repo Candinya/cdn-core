@@ -52,7 +52,7 @@ func (a *App) buildHeartbeatData(ctx context.Context, w *models.Instance) ([]byt
 
 		// 证书文件
 		if site.Cert != nil {
-			certPathPrefix := fmt.Sprintf(constants.CertPathDir, site.CertID)
+			certPathPrefix := fmt.Sprintf(constants.CertPathDir, site.Cert.ID)
 			// 基础信息（证书与私钥）
 			res.FilesUpdatedAt = append(res.FilesUpdatedAt, worker.FileUpdateRecord{
 				Path:      certPathPrefix + constants.CertPathCertName,

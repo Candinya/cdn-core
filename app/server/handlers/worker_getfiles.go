@@ -71,24 +71,26 @@ func (a *App) buildInstanceFileListByModel(ctx context.Context, instance *models
 			return nil, fmt.Errorf("heartbeat get site: %w", err)
 		}
 
-		certPathPrefix := fmt.Sprintf(constants.CertPathDir, site.Cert.ID)
+		if site.Cert != nil {
+			certPathPrefix := fmt.Sprintf(constants.CertPathDir, site.Cert.ID)
 
-		filesMap[certPathPrefix+constants.CertPathCertName] = types.CacheInstanceFile{
-			Type:    types.CacheInstanceFileCert,
-			Subtype: types.CacheInstanceFileSubtypeCertCertificate,
-			ID:      site.Cert.ID,
-		}
-		filesMap[certPathPrefix+constants.CertPathKeyName] = types.CacheInstanceFile{
-			Type:    types.CacheInstanceFileCert,
-			Subtype: types.CacheInstanceFileSubtypeCertPrivateKey,
-			ID:      site.Cert.ID,
-		}
-
-		if site.Cert.IntermediateCertificate != "" {
-			filesMap[certPathPrefix+constants.CertPathIntermediateName] = types.CacheInstanceFile{
+			filesMap[certPathPrefix+constants.CertPathCertName] = types.CacheInstanceFile{
 				Type:    types.CacheInstanceFileCert,
-				Subtype: types.CacheInstanceFileSubtypeCertIntermediate,
+				Subtype: types.CacheInstanceFileSubtypeCertCertificate,
 				ID:      site.Cert.ID,
+			}
+			filesMap[certPathPrefix+constants.CertPathKeyName] = types.CacheInstanceFile{
+				Type:    types.CacheInstanceFileCert,
+				Subtype: types.CacheInstanceFileSubtypeCertPrivateKey,
+				ID:      site.Cert.ID,
+			}
+
+			if site.Cert.IntermediateCertificate != "" {
+				filesMap[certPathPrefix+constants.CertPathIntermediateName] = types.CacheInstanceFile{
+					Type:    types.CacheInstanceFileCert,
+					Subtype: types.CacheInstanceFileSubtypeCertIntermediate,
+					ID:      site.Cert.ID,
+				}
 			}
 		}
 	}
